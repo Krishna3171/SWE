@@ -1,5 +1,6 @@
 package com.msa.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class Purchase {
@@ -7,11 +8,11 @@ public class Purchase {
     private int purchaseId;
     private LocalDate purchaseDate;
     private int vendorId;
-    private double totalAmount;
+    private BigDecimal totalAmount;
 
     public Purchase() {}
 
-    public Purchase(LocalDate purchaseDate, int vendorId, double totalAmount) {
+    public Purchase(LocalDate purchaseDate, int vendorId, BigDecimal totalAmount) {
         this.purchaseDate = purchaseDate;
         this.vendorId = vendorId;
         this.totalAmount = totalAmount;
@@ -28,8 +29,8 @@ public class Purchase {
     public int getVendorId() { return vendorId; }
     public void setVendorId(int vendorId) { this.vendorId = vendorId; }
 
-    public double getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(double totalAmount) {
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 }

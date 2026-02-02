@@ -1,19 +1,21 @@
 package com.msa.model;
 
+import java.math.BigDecimal;
+
 public class Medicine {
 
     private int medicineId;
     private String medicineCode;
     private String tradeName;
     private String genericName;
-    private double unitSellingPrice;
-    private double unitPurchasePrice;
+    private BigDecimal unitSellingPrice;
+    private BigDecimal unitPurchasePrice;
 
     public Medicine() {}
 
     public Medicine(String medicineCode, String tradeName,
-                    String genericName, double unitSellingPrice,
-                    double unitPurchasePrice) {
+                    String genericName, BigDecimal unitSellingPrice,
+                    BigDecimal unitPurchasePrice) {
         this.medicineCode = medicineCode;
         this.tradeName = tradeName;
         this.genericName = genericName;
@@ -33,13 +35,13 @@ public class Medicine {
     public String getGenericName() { return genericName; }
     public void setGenericName(String genericName) { this.genericName = genericName; }
 
-    public double getUnitSellingPrice() { return unitSellingPrice; }
-    public void setUnitSellingPrice(double unitSellingPrice) {
+    public BigDecimal getUnitSellingPrice() { return unitSellingPrice; }
+    public void setUnitSellingPrice(BigDecimal unitSellingPrice) {
         this.unitSellingPrice = unitSellingPrice;
     }
 
-    public double getUnitPurchasePrice() { return unitPurchasePrice; }
-    public void setUnitPurchasePrice(double unitPurchasePrice) {
+    public BigDecimal getUnitPurchasePrice() { return unitPurchasePrice; }
+    public void setUnitPurchasePrice(BigDecimal unitPurchasePrice) {
         this.unitPurchasePrice = unitPurchasePrice;
     }
 }

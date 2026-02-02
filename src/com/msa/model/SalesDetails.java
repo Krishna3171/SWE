@@ -1,16 +1,16 @@
 package com.msa.model;
-
+import java.math.BigDecimal;
 public class SalesDetails {
 
     private int saleId;
     private int medicineId;
     private int quantitySold;
-    private double price;
+    private BigDecimal price;
 
     public SalesDetails() {}
 
     public SalesDetails(int saleId, int medicineId,
-                        int quantitySold, double price) {
+                        int quantitySold, BigDecimal price) {
         this.saleId = saleId;
         this.medicineId = medicineId;
         this.quantitySold = quantitySold;
@@ -28,6 +28,6 @@ public class SalesDetails {
         this.quantitySold = quantitySold;
     }
 
-    public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 }
