@@ -14,7 +14,7 @@ import com.msa.model.Batch;
 public class BatchDAO {
 
     // INSERT batch (used during purchase)
-    public boolean insertBatch(Batch batch) {
+    public boolean insertBatch(Connection conn,Batch batch) {
 
         String sql = """
             INSERT INTO Batch (
@@ -28,7 +28,6 @@ public class BatchDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
         ) {
 
@@ -56,14 +55,13 @@ public class BatchDAO {
     }
 
     // GET all batches for a medicine
-    public List<Batch> getBatchesByMedicineId(int medicineId) {
+    public List<Batch> getBatchesByMedicineId(Connection conn,int medicineId) {
 
         List<Batch> batches = new ArrayList<>();
 
         String sql = "SELECT * FROM Batch WHERE medicine_id = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -89,7 +87,7 @@ public class BatchDAO {
     }
 
     // GET all expired batches (global)
-    public List<Batch> getExpiredBatches() {
+    public List<Batch> getExpiredBatches(Connection conn) {
 
         List<Batch> expired = new ArrayList<>();
 
@@ -99,7 +97,6 @@ public class BatchDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
@@ -123,7 +120,7 @@ public class BatchDAO {
     }
 
     // GET expired batches vendor-wise
-    public List<Batch> getExpiredBatchesByVendor(int vendorId) {
+    public List<Batch> getExpiredBatchesByVendor(Connection conn,int vendorId) {
 
         List<Batch> expired = new ArrayList<>();
 
@@ -134,7 +131,6 @@ public class BatchDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

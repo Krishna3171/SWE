@@ -13,7 +13,7 @@ import com.msa.model.Vendor;
 public class VendorDAO {
 
     // INSERT
-    public boolean insertVendor(Vendor vendor) {
+    public boolean insertVendor(Connection conn, Vendor vendor) {
 
         String sql = """
             INSERT INTO Vendor (vendor_name, address, contact_no)
@@ -21,7 +21,6 @@ public class VendorDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
         ) {
 
@@ -47,12 +46,11 @@ public class VendorDAO {
     }
 
     // GET BY ID
-    public Vendor getVendorById(int vendorId) {
+    public Vendor getVendorById(Connection conn, int vendorId) {
 
         String sql = "SELECT * FROM Vendor WHERE vendor_id = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -76,12 +74,11 @@ public class VendorDAO {
     }
 
     // GET BY NAME
-    public Vendor getVendorByName(String vendorName) {
+    public Vendor getVendorByName(Connection conn, String vendorName) {
 
         String sql = "SELECT * FROM Vendor WHERE vendor_name ILIKE ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -105,13 +102,12 @@ public class VendorDAO {
     }
 
     // GET ALL
-    public List<Vendor> getAllVendors() {
+    public List<Vendor> getAllVendors(Connection conn) {
 
         List<Vendor> vendors = new ArrayList<>();
         String sql = "SELECT * FROM Vendor";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {

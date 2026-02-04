@@ -13,7 +13,7 @@ import com.msa.model.SalesDetails;
 public class SalesDetailsDAO {
 
     // INSERT sales line item
-    public boolean insertSalesDetail(SalesDetails detail) {
+    public boolean insertSalesDetail(Connection conn, SalesDetails detail) {
 
         String sql = """
             INSERT INTO Sales_Details (
@@ -26,7 +26,6 @@ public class SalesDetailsDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -45,7 +44,7 @@ public class SalesDetailsDAO {
     }
 
     // GET all line items for a sale
-    public List<SalesDetails> getSalesDetailsBySaleId(int saleId) {
+    public List<SalesDetails> getSalesDetailsBySaleId(Connection conn, int saleId) {
 
         List<SalesDetails> details = new ArrayList<>();
 
@@ -55,7 +54,6 @@ public class SalesDetailsDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

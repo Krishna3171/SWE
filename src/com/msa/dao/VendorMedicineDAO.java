@@ -13,7 +13,7 @@ import com.msa.model.VendorMedicine;
 public class VendorMedicineDAO {
 
     // LINK vendor to medicine
-    public boolean linkVendorToMedicine(int vendorId, int medicineId) {
+    public boolean linkVendorToMedicine(Connection conn, int vendorId, int medicineId) {
 
         String sql = """
             INSERT INTO Vendor_Medicine (vendor_id, medicine_id)
@@ -21,7 +21,6 @@ public class VendorMedicineDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -38,7 +37,7 @@ public class VendorMedicineDAO {
     }
 
     // GET all vendors supplying a medicine
-    public List<VendorMedicine> getVendorsForMedicine(int medicineId) {
+    public List<VendorMedicine> getVendorsForMedicine(Connection conn, int medicineId) {
 
         List<VendorMedicine> mappings = new ArrayList<>();
 
@@ -48,7 +47,6 @@ public class VendorMedicineDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -70,7 +68,7 @@ public class VendorMedicineDAO {
     }
 
     // GET all medicines supplied by a vendor
-    public List<VendorMedicine> getMedicinesForVendor(int vendorId) {
+    public List<VendorMedicine> getMedicinesForVendor(Connection conn, int vendorId) {
 
         List<VendorMedicine> mappings = new ArrayList<>();
 
@@ -80,7 +78,6 @@ public class VendorMedicineDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

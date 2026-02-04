@@ -13,7 +13,7 @@ import com.msa.model.PurchaseDetails;
 public class PurchaseDetailsDAO {
 
     // INSERT purchase line item
-    public boolean insertPurchaseDetail(PurchaseDetails detail) {
+    public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) {
 
         String sql = """
             INSERT INTO Purchase_Details (
@@ -27,7 +27,6 @@ public class PurchaseDetailsDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -47,7 +46,7 @@ public class PurchaseDetailsDAO {
     }
 
     // GET all line items for a purchase
-    public List<PurchaseDetails> getPurchaseDetailsByPurchaseId(int purchaseId) {
+    public List<PurchaseDetails> getPurchaseDetailsByPurchaseId(Connection conn, int purchaseId) {
 
         List<PurchaseDetails> details = new ArrayList<>();
 
@@ -57,7 +56,6 @@ public class PurchaseDetailsDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

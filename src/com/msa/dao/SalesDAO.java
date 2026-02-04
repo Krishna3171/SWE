@@ -14,7 +14,8 @@ import com.msa.model.Sales;
 public class SalesDAO {
 
     // INSERT sales header
-    public boolean insertSale(Sales sale) {
+    public int insertSale(Connection conn,
+            java.math.BigDecimal totalAmount) {
 
         String sql = """
             INSERT INTO Sales (
@@ -25,40 +26,37 @@ public class SalesDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(
                 sql,
                 PreparedStatement.RETURN_GENERATED_KEYS
             )
         ) {
 
-            ps.setDate(1, Date.valueOf(sale.getSaleDate()));
-            ps.setBigDecimal(2, sale.getTotalAmount());
+            ps.setDate(1, Date.valueOf(java.time.LocalDate.now()));
+            ps.setBigDecimal(2, totalAmount);
 
             int rows = ps.executeUpdate();
 
             if (rows > 0) {
                 ResultSet rs = ps.getGeneratedKeys();
                 if (rs.next()) {
-                    sale.setSaleId(rs.getInt(1));
+                    return rs.getInt(1);
                 }
-                return true;
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return false;
+        return -1; // failure
     }
 
     // GET sale by ID
-    public Sales getSaleById(int saleId) {
+    public Sales getSaleById(Connection conn, int saleId) {
 
         String sql = "SELECT * FROM Sales WHERE sale_id = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -81,7 +79,7 @@ public class SalesDAO {
     }
 
     // GET sales in a date range (reports, revenue)
-    public List<Sales> getSalesInDateRange(
+    public List<Sales> getSalesInDateRange(Connection conn,
             java.time.LocalDate startDate,
             java.time.LocalDate endDate
     ) {
@@ -94,7 +92,6 @@ public class SalesDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

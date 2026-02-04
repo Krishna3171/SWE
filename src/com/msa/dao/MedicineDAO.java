@@ -13,12 +13,11 @@ import com.msa.model.Medicine;
 
 public class MedicineDAO {
 
-    public Medicine getMedicineByCode(String medicineCode) {
+    public Medicine getMedicineByCode(Connection conn,String medicineCode) {
 
         String sql = "SELECT * FROM Medicine WHERE medicine_code = ?";
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, medicineCode);
@@ -45,7 +44,7 @@ public class MedicineDAO {
         return null; // not found
     }
 
-    public boolean insertMedicine(Medicine medicine) {
+    public boolean insertMedicine(Connection conn, Medicine medicine) {
 
         String sql = """
                     INSERT INTO Medicine (
@@ -59,13 +58,12 @@ public class MedicineDAO {
                 """;
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(
                         sql,
                         Statement.RETURN_GENERATED_KEYS)) {
 
             // 1️⃣ Generate medicine code
-            String medicineCode = "MED" + System.currentTimeMillis();
+            String medicineCode = "MED" + medicine.getMedicineId();
             medicine.setMedicineCode(medicineCode);
 
             // 2️⃣ Bind parameters
@@ -94,7 +92,7 @@ public class MedicineDAO {
         return false;
     }
 
-    public boolean updateMedicine(Medicine medicine) {
+    public boolean updateMedicine(Connection conn, Medicine medicine) {
 
         String sql = """
                     UPDATE Medicine
@@ -107,7 +105,6 @@ public class MedicineDAO {
                 """;
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             // 1️⃣ Bind updated values
@@ -131,12 +128,11 @@ public class MedicineDAO {
         return false;
     }
 
-    public Medicine getMedicineById(int medicineId) {
+    public Medicine getMedicineById(Connection conn,int medicineId) {
 
         String sql = "SELECT * FROM Medicine WHERE medicine_id = ?";
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
@@ -160,7 +156,7 @@ public class MedicineDAO {
         return null;
     }
 
-    public List<Medicine> searchByName(String keyword) {
+    public List<Medicine> searchByName(Connection conn, String keyword) {
 
         List<Medicine> medicines = new ArrayList<>();
 
@@ -171,7 +167,6 @@ public class MedicineDAO {
                 """;
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
             String pattern = "%" + keyword + "%";
@@ -199,14 +194,15 @@ public class MedicineDAO {
         return medicines;
     }
 
-    public List<Medicine> getAllMedicines() {
+
+
+    public List<Medicine> getAllMedicines(Connection conn) {
 
         List<Medicine> medicines = new ArrayList<>();
 
         String sql = "SELECT * FROM Medicine";
 
         try (
-                Connection conn = DBConnection.getConnection();
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet rs = ps.executeQuery()) {
 

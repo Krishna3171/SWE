@@ -14,7 +14,7 @@ import com.msa.model.Purchase;
 public class PurchaseDAO {
 
     // INSERT purchase header
-    public boolean insertPurchase(Purchase purchase) {
+    public boolean insertPurchase(Connection conn, Purchase purchase) {
 
         String sql = """
             INSERT INTO Purchase (
@@ -26,7 +26,6 @@ public class PurchaseDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
         ) {
 
@@ -52,12 +51,11 @@ public class PurchaseDAO {
     }
 
     // GET purchase by ID
-    public Purchase getPurchaseById(int purchaseId) {
+    public Purchase getPurchaseById(Connection conn, int purchaseId) {
 
         String sql = "SELECT * FROM Purchase WHERE purchase_id = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -81,7 +79,7 @@ public class PurchaseDAO {
     }
 
     // GET purchases in a date range (reports)
-    public List<Purchase> getPurchasesInDateRange(
+    public List<Purchase> getPurchasesInDateRange(Connection conn,
             java.time.LocalDate startDate,
             java.time.LocalDate endDate
     ) {
@@ -94,7 +92,6 @@ public class PurchaseDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

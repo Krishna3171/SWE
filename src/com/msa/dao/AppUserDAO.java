@@ -11,7 +11,7 @@ import com.msa.model.AppUser;
 public class AppUserDAO {
 
     // INSERT user (admin/setup)
-    public boolean insertUser(AppUser user) {
+    public boolean insertUser(Connection conn,AppUser user) {
 
         String sql = """
             INSERT INTO App_User (
@@ -23,7 +23,6 @@ public class AppUserDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
         ) {
 
@@ -49,12 +48,11 @@ public class AppUserDAO {
     }
 
     // GET user by username (login)
-    public AppUser getUserByUsername(String username) {
+    public AppUser getUserByUsername(Connection conn, String username) {
 
         String sql = "SELECT * FROM App_User WHERE username = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 

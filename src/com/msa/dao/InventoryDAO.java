@@ -13,7 +13,7 @@ import com.msa.model.Inventory;
 public class InventoryDAO {
 
     // CREATE inventory row for a new medicine
-    public boolean createInventoryForMedicine(int medicineId, int quantity, int reorderThreshold) {
+    public boolean createInventoryForMedicine(Connection conn,int medicineId, int quantity, int reorderThreshold) {
 
         String sql = """
             INSERT INTO Inventory (medicine_id, quantity_available, reorder_threshold)
@@ -21,7 +21,6 @@ public class InventoryDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -39,12 +38,11 @@ public class InventoryDAO {
     }
 
     // GET inventory by medicine ID
-    public Inventory getInventoryByMedicineId(int medicineId) {
+    public Inventory getInventoryByMedicineId(Connection conn,int medicineId) {
 
         String sql = "SELECT * FROM Inventory WHERE medicine_id = ?";
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -67,7 +65,7 @@ public class InventoryDAO {
     }
 
     // UPDATE quantity (used by sales & purchase)
-    public boolean updateQuantity(int medicineId, int newQuantity) {
+    public boolean updateQuantity(Connection conn,int medicineId, int newQuantity) {
 
         String sql = """
             UPDATE Inventory
@@ -76,7 +74,6 @@ public class InventoryDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -93,7 +90,7 @@ public class InventoryDAO {
     }
 
     // UPDATE reorder threshold
-    public boolean updateReorderThreshold(int medicineId, int reorderThreshold) {
+    public boolean updateReorderThreshold(Connection conn,int medicineId, int reorderThreshold) {
 
         String sql = """
             UPDATE Inventory
@@ -102,7 +99,6 @@ public class InventoryDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql)
         ) {
 
@@ -119,7 +115,7 @@ public class InventoryDAO {
     }
 
     // GET all medicines below reorder threshold (JIT core)
-    public List<Inventory> getLowStockMedicines() {
+    public List<Inventory> getLowStockMedicines(Connection conn) {
 
         List<Inventory> lowStock = new ArrayList<>();
 
@@ -129,7 +125,6 @@ public class InventoryDAO {
         """;
 
         try (
-            Connection conn = DBConnection.getConnection();
             PreparedStatement ps = conn.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
@@ -147,5 +142,30 @@ public class InventoryDAO {
         }
 
         return lowStock;
+    }
+
+    // REDUCE quantity (sales)
+    public boolean reduceQuantity(Connection conn,int medicineId, int amount) {
+
+        String sql = """
+            UPDATE Inventory
+            SET quantity_available = quantity_available - ?
+            WHERE medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, amount);
+            ps.setInt(2, medicineId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }
