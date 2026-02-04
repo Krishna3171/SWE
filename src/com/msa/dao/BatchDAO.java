@@ -58,7 +58,7 @@ public class BatchDAO {
 
         List<Batch> batches = new ArrayList<>();
 
-        String sql = "SELECT * FROM Batch WHERE medicine_id = ?";
+        String sql = "SELECT * FROM Batch WHERE medicine_id = ? ";
 
         try (
             PreparedStatement ps = conn.prepareStatement(sql)
@@ -152,5 +152,49 @@ public class BatchDAO {
         }
 
         return expired;
+    }
+
+    public boolean reduceBatchQuantity(Connection conn,int batchId, int quantityToReduce) {
+
+        String sql = """
+            UPDATE Batch
+            SET quantity = quantity - ?
+            WHERE batch_id = ?
+            AND quantity >= ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, quantityToReduce);
+            ps.setInt(2, batchId);
+            ps.setInt(3, quantityToReduce);
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean deleteBatch(Connection conn,int batchId) {
+
+        String sql = "DELETE FROM Batch WHERE batch_id = ?";
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, batchId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }
