@@ -38,13 +38,11 @@ public class SalesService {
                 // a) resolve medicine (business → technical)
                 Medicine medicine = medicineDAO.getMedicineByCode(
                         connection,
-                        item.getMedicineCode()
-                );
+                        item.getMedicineCode());
 
                 if (medicine == null) {
                     throw new RuntimeException(
-                        "Medicine not found: " + item.getMedicineCode()
-                    );
+                            "Medicine not found: " + item.getMedicineCode());
                 }
 
                 int medicineId = medicine.getMedicineId();
@@ -52,20 +50,17 @@ public class SalesService {
                 // b) check inventory
                 Inventory inventory = inventoryDAO.getInventoryByMedicineId(
                         connection,
-                        medicineId
-                );
+                        medicineId);
 
                 if (inventory.getQuantityAvailable() < item.getQuantity()) {
                     throw new RuntimeException(
-                        "Insufficient stock for " + item.getMedicineCode()
-                    );
+                            "Insufficient stock for " + item.getMedicineCode());
                 }
 
                 // c) calculate price
                 BigDecimal unitPrice = medicine.getUnitSellingPrice();
                 BigDecimal lineTotal = unitPrice.multiply(
-                        BigDecimal.valueOf(item.getQuantity())
-                );
+                        BigDecimal.valueOf(item.getQuantity()));
 
                 totalAmount = totalAmount.add(lineTotal);
 
@@ -75,8 +70,7 @@ public class SalesService {
                         item.getMedicineCode(),
                         unitPrice,
                         item.getQuantity(),
-                        lineTotal
-                ));
+                        lineTotal));
             }
 
             // 3️⃣ PHASE 2 — WRITE (ALL OR NOTHING)
@@ -84,26 +78,24 @@ public class SalesService {
             // a) insert sales header
             int saleId = salesDAO.insertSale(
                     connection,
-                    totalAmount
-            );
+                    totalAmount);
 
+           
             // b) insert details + update inventory
             for (SaleLinePlan line : salePlan) {
 
-                SalesDetails detail=new SalesDetails(saleId,
+                SalesDetails detail = new SalesDetails(saleId,
                         line.getMedicineId(),
                         line.getQuantity(),
                         line.getUnitPrice());
                 salesDetailsDAO.insertSalesDetail(
                         connection,
-                        detail
-                );
+                        detail);
 
                 inventoryDAO.reduceQuantity(
                         connection,
                         line.getMedicineId(),
-                        line.getQuantity()
-                );
+                        line.getQuantity());
             }
 
             // 4️⃣ COMMIT
@@ -112,8 +104,7 @@ public class SalesService {
             return new SaleResponse(
                     saleId,
                     totalAmount,
-                    "Sale completed successfully"
-            );
+                    "Sale completed successfully");
 
         } catch (Exception e) {
 

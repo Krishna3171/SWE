@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import com.msa.db.DBConnection;
 import com.msa.model.AppUser;
 
 public class AppUserDAO {

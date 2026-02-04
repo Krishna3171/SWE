@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.msa.db.DBConnection;
 import com.msa.model.SalesDetails;
 
 public class SalesDetailsDAO {

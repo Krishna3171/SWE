@@ -8,7 +8,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.msa.db.DBConnection;
 import com.msa.model.Medicine;
 
 public class MedicineDAO {
