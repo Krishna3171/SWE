@@ -13,7 +13,7 @@ import com.msa.model.Purchase;
 public class PurchaseDAO {
 
     // INSERT purchase header
-    public boolean insertPurchase(Connection conn, Purchase purchase) {
+    public int insertPurchase(Connection conn, Purchase purchase) {
 
         String sql = """
             INSERT INTO Purchase (
@@ -39,14 +39,14 @@ public class PurchaseDAO {
                 if (rs.next()) {
                     purchase.setPurchaseId(rs.getInt(1));
                 }
-                return true;
+                return purchase.getPurchaseId();
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return false;
+        return -1; // failure
     }
 
     // GET purchase by ID

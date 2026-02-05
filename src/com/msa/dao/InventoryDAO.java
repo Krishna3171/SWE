@@ -167,4 +167,29 @@ public class InventoryDAO {
 
         return false;
     }
+
+    public boolean addQuantity(Connection conn,int medicineId, int amount) {
+
+        String sql = """
+            UPDATE Inventory
+            SET quantity_available = quantity_available + ?
+            WHERE medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, amount);
+            ps.setInt(2, medicineId);
+
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
 }

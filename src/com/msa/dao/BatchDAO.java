@@ -13,7 +13,7 @@ import com.msa.model.Batch;
 public class BatchDAO {
 
     // INSERT batch (used during purchase)
-    public boolean insertBatch(Connection conn,Batch batch) {
+    public int insertBatch(Connection conn,Batch batch) {
 
         String sql = """
             INSERT INTO Batch (
@@ -43,14 +43,14 @@ public class BatchDAO {
                 if (rs.next()) {
                     batch.setBatchId(rs.getInt(1));
                 }
-                return true;
+                return batch.getBatchId();
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return false;
+        return -1;
     }
 
     // GET all batches for a medicine

@@ -36,9 +36,9 @@ public class VendorMedicineDAO {
     }
 
     // GET all vendors supplying a medicine
-    public List<VendorMedicine> getVendorsForMedicine(Connection conn, int medicineId) {
+    public List<Integer> getVendorsForMedicine(Connection conn, int medicineId) {
 
-        List<VendorMedicine> mappings = new ArrayList<>();
+        List<Integer> vendorIds = new ArrayList<>();
 
         String sql = """
             SELECT * FROM Vendor_Medicine
@@ -56,14 +56,14 @@ public class VendorMedicineDAO {
                 VendorMedicine vm = new VendorMedicine();
                 vm.setVendorId(rs.getInt("vendor_id"));
                 vm.setMedicineId(rs.getInt("medicine_id"));
-                mappings.add(vm);
+                vendorIds.add(vm.getVendorId());
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-        return mappings;
+        return vendorIds;
     }
 
     // GET all medicines supplied by a vendor
@@ -96,4 +96,26 @@ public class VendorMedicineDAO {
 
         return mappings;
     }
+
+    public boolean existsMapping(Connection conn, int vendorId, int medicineId) {
+
+        String sql = """
+            SELECT 1 FROM Vendor_Medicine
+            WHERE vendor_id = ? AND medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, vendorId);
+            ps.setInt(2, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            return rs.next();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }}
 }
