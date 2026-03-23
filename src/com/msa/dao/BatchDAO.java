@@ -13,22 +13,21 @@ import com.msa.model.Batch;
 public class BatchDAO {
 
     // INSERT batch (used during purchase)
-    public int insertBatch(Connection conn,Batch batch) {
+    public int insertBatch(Connection conn, Batch batch) {
 
         String sql = """
-            INSERT INTO Batch (
-                medicine_id,
-                batch_number,
-                expiry_date,
-                quantity,
-                vendor_id
-            )
-            VALUES (?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO Batch (
+                        medicine_id,
+                        batch_number,
+                        expiry_date,
+                        quantity,
+                        vendor_id
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             ps.setInt(1, batch.getMedicineId());
             ps.setString(2, batch.getBatchNumber());
@@ -54,15 +53,14 @@ public class BatchDAO {
     }
 
     // GET all batches for a medicine
-    public List<Batch> getBatchesByMedicineId(Connection conn,int medicineId) {
+    public List<Batch> getBatchesByMedicineId(Connection conn, int medicineId) {
 
         List<Batch> batches = new ArrayList<>();
 
         String sql = "SELECT * FROM Batch WHERE medicine_id = ? ";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ResultSet rs = ps.executeQuery();
@@ -91,14 +89,13 @@ public class BatchDAO {
         List<Batch> expired = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Batch
-            WHERE expiry_date < CURRENT_DATE
-        """;
+                    SELECT * FROM Batch
+                    WHERE expiry_date < CURRENT_DATE
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Batch batch = new Batch();
@@ -119,19 +116,18 @@ public class BatchDAO {
     }
 
     // GET expired batches vendor-wise
-    public List<Batch> getExpiredBatchesByVendor(Connection conn,int vendorId) {
+    public List<Batch> getExpiredBatchesByVendor(Connection conn, int vendorId) {
 
         List<Batch> expired = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Batch
-            WHERE expiry_date < CURRENT_DATE
-              AND vendor_id = ?
-        """;
+                    SELECT * FROM Batch
+                    WHERE expiry_date < CURRENT_DATE
+                      AND vendor_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, vendorId);
             ResultSet rs = ps.executeQuery();
@@ -154,18 +150,17 @@ public class BatchDAO {
         return expired;
     }
 
-    public boolean reduceBatchQuantity(Connection conn,int batchId, int quantityToReduce) {
+    public boolean reduceBatchQuantity(Connection conn, int batchId, int quantityToReduce) {
 
         String sql = """
-            UPDATE Batch
-            SET quantity = quantity - ?
-            WHERE batch_id = ?
-            AND quantity >= ?
-        """;
+                    UPDATE Batch
+                    SET quantity = quantity - ?
+                    WHERE batch_id = ?
+                    AND quantity >= ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, quantityToReduce);
             ps.setInt(2, batchId);
@@ -179,16 +174,33 @@ public class BatchDAO {
         return false;
     }
 
-    public boolean deleteBatch(Connection conn,int batchId) {
+    public boolean deleteBatch(Connection conn, int batchId) {
 
         String sql = "DELETE FROM Batch WHERE batch_id = ?";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, batchId);
 
+            return ps.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    // DELETE batch only when quantity reached zero
+    public boolean deleteBatchIfEmpty(Connection conn, int batchId) {
+
+        String sql = "DELETE FROM Batch WHERE batch_id = ? AND quantity = 0";
+
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, batchId);
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {

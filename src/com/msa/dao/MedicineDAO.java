@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import com.msa.model.Medicine;
 
 public class MedicineDAO {
 
-    public Medicine getMedicineByCode(Connection conn,String medicineCode) {
+    public Medicine getMedicineByCode(Connection conn, String medicineCode) {
 
         String sql = "SELECT * FROM Medicine WHERE medicine_code = ?";
 
@@ -61,9 +62,10 @@ public class MedicineDAO {
                         sql,
                         Statement.RETURN_GENERATED_KEYS)) {
 
-            // 1️⃣ Generate medicine code
-            String medicineCode = "MED" + medicine.getMedicineId();
-            medicine.setMedicineCode(medicineCode);
+            // 1️⃣ Use a temporary unique code for insert.
+            // Final code is generated after DB returns the real medicine_id.
+            String temporaryCode = "TMP-" + UUID.randomUUID();
+            medicine.setMedicineCode(temporaryCode);
 
             // 2️⃣ Bind parameters
             ps.setString(1, medicine.getMedicineCode());
@@ -79,7 +81,20 @@ public class MedicineDAO {
             if (rowsInserted > 0) {
                 var rs = ps.getGeneratedKeys();
                 if (rs.next()) {
-                    medicine.setMedicineId(rs.getInt(1));
+                    int generatedId = rs.getInt(1);
+                    medicine.setMedicineId(generatedId);
+
+                    String finalMedicineCode = "MED" + generatedId;
+                    medicine.setMedicineCode(finalMedicineCode);
+
+                    String updateCodeSql = "UPDATE Medicine SET medicine_code = ? WHERE medicine_id = ?";
+                    try (PreparedStatement updatePs = conn.prepareStatement(updateCodeSql)) {
+                        updatePs.setString(1, finalMedicineCode);
+                        updatePs.setInt(2, generatedId);
+                        if (updatePs.executeUpdate() == 0) {
+                            return false;
+                        }
+                    }
                 }
                 return true;
             }
@@ -127,7 +142,7 @@ public class MedicineDAO {
         return false;
     }
 
-    public Medicine getMedicineById(Connection conn,int medicineId) {
+    public Medicine getMedicineById(Connection conn, int medicineId) {
 
         String sql = "SELECT * FROM Medicine WHERE medicine_id = ?";
 
@@ -192,8 +207,6 @@ public class MedicineDAO {
 
         return medicines;
     }
-
-
 
     public List<Medicine> getAllMedicines(Connection conn) {
 
