@@ -16,17 +16,16 @@ public class PurchaseDAO {
     public int insertPurchase(Connection conn, Purchase purchase) {
 
         String sql = """
-            INSERT INTO Purchase (
-                purchase_date,
-                vendor_id,
-                total_amount
-            )
-            VALUES (?, ?, ?)
-        """;
+                    INSERT INTO Purchase (
+                        purchase_date,
+                        vendor_id,
+                        total_amount
+                    )
+                    VALUES (?, ?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             ps.setDate(1, Date.valueOf(purchase.getPurchaseDate()));
             ps.setInt(2, purchase.getVendorId());
@@ -55,8 +54,7 @@ public class PurchaseDAO {
         String sql = "SELECT * FROM Purchase WHERE purchase_id = ?";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, purchaseId);
             ResultSet rs = ps.executeQuery();
@@ -80,19 +78,17 @@ public class PurchaseDAO {
     // GET purchases in a date range (reports)
     public List<Purchase> getPurchasesInDateRange(Connection conn,
             java.time.LocalDate startDate,
-            java.time.LocalDate endDate
-    ) {
+            java.time.LocalDate endDate) {
 
         List<Purchase> purchases = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Purchase
-            WHERE purchase_date BETWEEN ? AND ?
-        """;
+                    SELECT * FROM Purchase
+                    WHERE purchase_date BETWEEN ? AND ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setDate(1, Date.valueOf(startDate));
             ps.setDate(2, Date.valueOf(endDate));
@@ -118,8 +114,7 @@ public class PurchaseDAO {
     // ALIAS METHOD for profit report (same as getPurchasesInDateRange)
     public List<Purchase> getPurchasesBetweenDates(Connection conn,
             java.time.LocalDate startDate,
-            java.time.LocalDate endDate
-    ) {
+            java.time.LocalDate endDate) {
         return getPurchasesInDateRange(conn, startDate, endDate);
     }
 }

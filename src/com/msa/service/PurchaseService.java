@@ -209,7 +209,7 @@ public class PurchaseService {
                 private final PurchaseItemRequest request;
 
                 ResolvedPurchaseItem(int medicineId,
-                                                         PurchaseItemRequest request) {
+                                PurchaseItemRequest request) {
                         this.medicineId = medicineId;
                         this.request = request;
                 }
