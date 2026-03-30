@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.msa.model.PurchaseDetails;
 
@@ -76,5 +77,120 @@ public class PurchaseDetailsDAO {
         }
 
         return details;
+    }
+
+    // GET purchase details by medicine ID (for profit calculation)
+    public List<PurchaseDetails> getPurchaseDetailsByMedicineId(Connection conn, int medicineId) {
+
+        List<PurchaseDetails> details = new ArrayList<>();
+
+        String sql = """
+            SELECT * FROM Purchase_Details
+            WHERE medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                details.add(detail);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
+    }
+
+    // GET average purchase price for a medicine (for profit margin calculation)
+    public BigDecimal getAveragePurchasePriceForMedicine(Connection conn, int medicineId) {
+
+        String sql = """
+            SELECT AVG(unit_price) as avg_price
+            FROM Purchase_Details
+            WHERE medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("avg_price");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    // GET unit purchase price
+    public BigDecimal getUnitPurchasePrice(Connection conn, int purchaseId, int medicineId) {
+
+        String sql = """
+            SELECT unit_price FROM Purchase_Details
+            WHERE purchase_id = ? AND medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, purchaseId);
+            ps.setInt(2, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("unit_price");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    // GET quantity for a medicine
+    public int getQuantity(Connection conn, int purchaseId, int medicineId) {
+
+        String sql = """
+            SELECT quantity FROM Purchase_Details
+            WHERE purchase_id = ? AND medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, purchaseId);
+            ps.setInt(2, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("quantity");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 }

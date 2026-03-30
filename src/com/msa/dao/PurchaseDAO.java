@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.msa.model.Purchase;
 
@@ -113,5 +114,13 @@ public class PurchaseDAO {
         }
 
         return purchases;
+    }
+
+    // ALIAS METHOD for profit report (same as getPurchasesInDateRange)
+    public List<Purchase> getPurchasesBetweenDates(Connection conn,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    ) {
+        return getPurchasesInDateRange(conn, startDate, endDate);
     }
 }

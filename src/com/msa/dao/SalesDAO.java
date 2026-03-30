@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.msa.model.Sales;
 
@@ -112,5 +113,45 @@ public class SalesDAO {
         }
 
         return salesList;
+    }
+
+    // ALIAS METHOD for profit report (same as getSalesInDateRange)
+    public List<Sales> getSalesBetweenDates(Connection conn,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    ) {
+        return getSalesInDateRange(conn, startDate, endDate);
+    }
+
+    // GET total discount amount in date range
+    public BigDecimal getTotalDiscountInDateRange(Connection conn,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    ) {
+
+        String sql = """
+            SELECT COALESCE(SUM(discount_amount), 0) as total_discount
+            FROM Sales
+            WHERE sale_date BETWEEN ? AND ? AND discount_amount IS NOT NULL
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setDate(1, Date.valueOf(startDate));
+            ps.setDate(2, Date.valueOf(endDate));
+
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("total_discount");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
     }
 }
