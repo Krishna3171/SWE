@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.math.BigDecimal;
 
 import com.msa.model.SalesDetails;
 
@@ -73,5 +74,92 @@ public class SalesDetailsDAO {
         }
 
         return details;
+    }
+
+    // GET sales details by medicine ID (for profit calculation)
+    public List<SalesDetails> getSalesDetailsByMedicineId(Connection conn, int medicineId) {
+
+        List<SalesDetails> details = new ArrayList<>();
+
+        String sql = """
+            SELECT * FROM Sales_Details
+            WHERE medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                SalesDetails detail = new SalesDetails();
+                detail.setSaleId(rs.getInt("sale_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantitySold(rs.getInt("quantity_sold"));
+                detail.setPrice(rs.getBigDecimal("price"));
+                details.add(detail);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
+    }
+
+    // GET unit sale price (named as unitSalePrice for compatibility)
+    public BigDecimal getUnitSalePrice(Connection conn, int saleId, int medicineId) {
+
+        String sql = """
+            SELECT price FROM Sales_Details
+            WHERE sale_id = ? AND medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, saleId);
+            ps.setInt(2, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("price");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
+    // GET quantity for a medicine-sale combination
+    public int getQuantity(Connection conn, int saleId, int medicineId) {
+
+        String sql = """
+            SELECT quantity_sold FROM Sales_Details
+            WHERE sale_id = ? AND medicine_id = ?
+        """;
+
+        try (
+            PreparedStatement ps = conn.prepareStatement(sql)
+        ) {
+
+            ps.setInt(1, saleId);
+            ps.setInt(2, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("quantity_sold");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 }
