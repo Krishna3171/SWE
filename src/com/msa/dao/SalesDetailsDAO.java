@@ -51,8 +51,14 @@ public class SalesDetailsDAO {
         List<SalesDetails> details = new ArrayList<>();
 
         String sql = """
-                    SELECT * FROM Sales_Details
-                    WHERE sale_id = ?
+                    SELECT d.sale_id,
+                           d.medicine_id,
+                           d.quantity_sold,
+                           d.price,
+                           s.sale_date
+                    FROM Sales_Details d
+                    JOIN Sales s ON d.sale_id = s.sale_id
+                    WHERE d.sale_id = ?
                 """;
 
         try (
@@ -84,8 +90,14 @@ public class SalesDetailsDAO {
         List<SalesDetails> details = new ArrayList<>();
 
         String sql = """
-                    SELECT * FROM Sales_Details
-                    WHERE medicine_id = ?
+                    SELECT d.sale_id,
+                           d.medicine_id,
+                           d.quantity_sold,
+                           d.price,
+                           s.sale_date
+                    FROM Sales_Details d
+                    JOIN Sales s ON d.sale_id = s.sale_id
+                    WHERE d.medicine_id = ?
                 """;
 
         try (
@@ -178,8 +190,14 @@ public class SalesDetailsDAO {
         List<SalesDetails> details = new ArrayList<>();
 
         String sql = """
-                    SELECT * FROM Sales_Details
-                    WHERE medicine_id = ? AND sale_date BETWEEN ? AND ?
+                    SELECT d.sale_id,
+                           d.medicine_id,
+                           d.quantity_sold,
+                           d.price,
+                           s.sale_date
+                    FROM Sales_Details d
+                    JOIN Sales s ON d.sale_id = s.sale_id
+                    WHERE d.medicine_id = ? AND s.sale_date BETWEEN ? AND ?
                 """;
 
         try (

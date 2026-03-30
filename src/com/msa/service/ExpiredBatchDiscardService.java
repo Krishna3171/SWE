@@ -47,8 +47,16 @@ public class ExpiredBatchDiscardService {
                         batch.getMedicineId(),
                         batch.getQuantity());
 
-                // 2️⃣ Delete batch
-                batchDAO.deleteBatch(conn, batch.getBatchId());
+                // 2️⃣ Zero out the expired batch instead of deleting a referenced history row
+                boolean discarded = batchDAO.reduceBatchQuantity(
+                        conn,
+                        batch.getBatchId(),
+                        batch.getQuantity());
+
+                if (!discarded) {
+                    throw new RuntimeException(
+                            "Failed to discard expired batch ID " + batch.getBatchId());
+                }
 
                 // 3️⃣ Add report entry
                 reportItems.add(
