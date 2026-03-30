@@ -8,7 +8,6 @@ public class Sales {
     private int saleId;
     private LocalDate saleDate;
     private BigDecimal totalAmount;
-    private BigDecimal discountAmount;
 
     public Sales() {
     }
@@ -44,13 +43,5 @@ public class Sales {
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
-    }
-
-    public BigDecimal getDiscountAmount() {
-        return discountAmount;
-    }
-
-    public void setDiscountAmount(BigDecimal discountAmount) {
-        this.discountAmount = discountAmount;
     }
 }

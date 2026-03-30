@@ -141,6 +141,38 @@ public class PurchaseDetailsDAO {
         return BigDecimal.ZERO;
     }
 
+    // GET average purchase price for a medicine in a date range
+    public BigDecimal getAveragePurchasePriceForMedicineInDateRange(
+            Connection conn,
+            int medicineId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+
+        String sql = """
+                    SELECT AVG(unit_price) as avg_price
+                    FROM Purchase_Details
+                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ?
+                """;
+
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, medicineId);
+            ps.setDate(2, Date.valueOf(startDate));
+            ps.setDate(3, Date.valueOf(endDate));
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBigDecimal("avg_price");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return BigDecimal.ZERO;
+    }
+
     // GET unit purchase price
     public BigDecimal getUnitPurchasePrice(Connection conn, int purchaseId, int medicineId) {
 

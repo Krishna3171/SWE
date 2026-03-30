@@ -8,12 +8,11 @@ import java.util.List;
  * Response DTO for profit report with detailed breakdown
  */
 public class ProfitReportResponse {
-    
+
     private LocalDate startDate;
     private LocalDate endDate;
     private BigDecimal totalSalesRevenue;
     private BigDecimal totalPurchaseCost;
-    private BigDecimal totalDiscounts;
     private BigDecimal totalProfit;
     private BigDecimal profitMargin; // percentage
     private List<MedicineProfitDetail> medicineProfits;
@@ -28,18 +27,15 @@ public class ProfitReportResponse {
             LocalDate endDate,
             BigDecimal totalSalesRevenue,
             BigDecimal totalPurchaseCost,
-            BigDecimal totalDiscounts,
             BigDecimal totalProfit,
             BigDecimal profitMargin,
             List<MedicineProfitDetail> medicineProfits,
             List<VendorProfitDetail> vendorProfits,
-            String message
-    ) {
+            String message) {
         this.startDate = startDate;
         this.endDate = endDate;
         this.totalSalesRevenue = totalSalesRevenue;
         this.totalPurchaseCost = totalPurchaseCost;
-        this.totalDiscounts = totalDiscounts;
         this.totalProfit = totalProfit;
         this.profitMargin = profitMargin;
         this.medicineProfits = medicineProfits;
@@ -48,35 +44,77 @@ public class ProfitReportResponse {
     }
 
     // Getters and Setters
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getStartDate() {
+        return startDate;
+    }
 
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
 
-    public BigDecimal getTotalSalesRevenue() { return totalSalesRevenue; }
-    public void setTotalSalesRevenue(BigDecimal totalSalesRevenue) { this.totalSalesRevenue = totalSalesRevenue; }
+    public LocalDate getEndDate() {
+        return endDate;
+    }
 
-    public BigDecimal getTotalPurchaseCost() { return totalPurchaseCost; }
-    public void setTotalPurchaseCost(BigDecimal totalPurchaseCost) { this.totalPurchaseCost = totalPurchaseCost; }
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
 
-    public BigDecimal getTotalDiscounts() { return totalDiscounts; }
-    public void setTotalDiscounts(BigDecimal totalDiscounts) { this.totalDiscounts = totalDiscounts; }
+    public BigDecimal getTotalSalesRevenue() {
+        return totalSalesRevenue;
+    }
 
-    public BigDecimal getTotalProfit() { return totalProfit; }
-    public void setTotalProfit(BigDecimal totalProfit) { this.totalProfit = totalProfit; }
+    public void setTotalSalesRevenue(BigDecimal totalSalesRevenue) {
+        this.totalSalesRevenue = totalSalesRevenue;
+    }
 
-    public BigDecimal getProfitMargin() { return profitMargin; }
-    public void setProfitMargin(BigDecimal profitMargin) { this.profitMargin = profitMargin; }
+    public BigDecimal getTotalPurchaseCost() {
+        return totalPurchaseCost;
+    }
 
-    public List<MedicineProfitDetail> getMedicineProfits() { return medicineProfits; }
-    public void setMedicineProfits(List<MedicineProfitDetail> medicineProfits) { this.medicineProfits = medicineProfits; }
+    public void setTotalPurchaseCost(BigDecimal totalPurchaseCost) {
+        this.totalPurchaseCost = totalPurchaseCost;
+    }
 
-    public List<VendorProfitDetail> getVendorProfits() { return vendorProfits; }
-    public void setVendorProfits(List<VendorProfitDetail> vendorProfits) { this.vendorProfits = vendorProfits; }
+    public BigDecimal getTotalProfit() {
+        return totalProfit;
+    }
 
-    public String getMessage() { return message; }
-    public void setMessage(String message) { this.message = message; }
+    public void setTotalProfit(BigDecimal totalProfit) {
+        this.totalProfit = totalProfit;
+    }
+
+    public BigDecimal getProfitMargin() {
+        return profitMargin;
+    }
+
+    public void setProfitMargin(BigDecimal profitMargin) {
+        this.profitMargin = profitMargin;
+    }
+
+    public List<MedicineProfitDetail> getMedicineProfits() {
+        return medicineProfits;
+    }
+
+    public void setMedicineProfits(List<MedicineProfitDetail> medicineProfits) {
+        this.medicineProfits = medicineProfits;
+    }
+
+    public List<VendorProfitDetail> getVendorProfits() {
+        return vendorProfits;
+    }
+
+    public void setVendorProfits(List<VendorProfitDetail> vendorProfits) {
+        this.vendorProfits = vendorProfits;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
     // Nested DTOs
     public static class MedicineProfitDetail {
@@ -88,7 +126,8 @@ public class ProfitReportResponse {
         private BigDecimal profitMargin;
         private int totalQuantity;
 
-        public MedicineProfitDetail() {}
+        public MedicineProfitDetail() {
+        }
 
         public MedicineProfitDetail(
                 int medicineId,
@@ -97,8 +136,7 @@ public class ProfitReportResponse {
                 BigDecimal totalCost,
                 BigDecimal profit,
                 BigDecimal profitMargin,
-                int totalQuantity
-        ) {
+                int totalQuantity) {
             this.medicineId = medicineId;
             this.medicineName = medicineName;
             this.totalRevenue = totalRevenue;
@@ -109,26 +147,61 @@ public class ProfitReportResponse {
         }
 
         // Getters and Setters
-        public int getMedicineId() { return medicineId; }
-        public void setMedicineId(int medicineId) { this.medicineId = medicineId; }
+        public int getMedicineId() {
+            return medicineId;
+        }
 
-        public String getMedicineName() { return medicineName; }
-        public void setMedicineName(String medicineName) { this.medicineName = medicineName; }
+        public void setMedicineId(int medicineId) {
+            this.medicineId = medicineId;
+        }
 
-        public BigDecimal getTotalRevenue() { return totalRevenue; }
-        public void setTotalRevenue(BigDecimal totalRevenue) { this.totalRevenue = totalRevenue; }
+        public String getMedicineName() {
+            return medicineName;
+        }
 
-        public BigDecimal getTotalCost() { return totalCost; }
-        public void setTotalCost(BigDecimal totalCost) { this.totalCost = totalCost; }
+        public void setMedicineName(String medicineName) {
+            this.medicineName = medicineName;
+        }
 
-        public BigDecimal getProfit() { return profit; }
-        public void setProfit(BigDecimal profit) { this.profit = profit; }
+        public BigDecimal getTotalRevenue() {
+            return totalRevenue;
+        }
 
-        public BigDecimal getProfitMargin() { return profitMargin; }
-        public void setProfitMargin(BigDecimal profitMargin) { this.profitMargin = profitMargin; }
+        public void setTotalRevenue(BigDecimal totalRevenue) {
+            this.totalRevenue = totalRevenue;
+        }
 
-        public int getTotalQuantity() { return totalQuantity; }
-        public void setTotalQuantity(int totalQuantity) { this.totalQuantity = totalQuantity; }
+        public BigDecimal getTotalCost() {
+            return totalCost;
+        }
+
+        public void setTotalCost(BigDecimal totalCost) {
+            this.totalCost = totalCost;
+        }
+
+        public BigDecimal getProfit() {
+            return profit;
+        }
+
+        public void setProfit(BigDecimal profit) {
+            this.profit = profit;
+        }
+
+        public BigDecimal getProfitMargin() {
+            return profitMargin;
+        }
+
+        public void setProfitMargin(BigDecimal profitMargin) {
+            this.profitMargin = profitMargin;
+        }
+
+        public int getTotalQuantity() {
+            return totalQuantity;
+        }
+
+        public void setTotalQuantity(int totalQuantity) {
+            this.totalQuantity = totalQuantity;
+        }
     }
 
     public static class VendorProfitDetail {
@@ -136,7 +209,8 @@ public class ProfitReportResponse {
         private String vendorName;
         private BigDecimal totalPurchaseCost;
 
-        public VendorProfitDetail() {}
+        public VendorProfitDetail() {
+        }
 
         public VendorProfitDetail(int vendorId, String vendorName, BigDecimal totalPurchaseCost) {
             this.vendorId = vendorId;
@@ -145,13 +219,28 @@ public class ProfitReportResponse {
         }
 
         // Getters and Setters
-        public int getVendorId() { return vendorId; }
-        public void setVendorId(int vendorId) { this.vendorId = vendorId; }
+        public int getVendorId() {
+            return vendorId;
+        }
 
-        public String getVendorName() { return vendorName; }
-        public void setVendorName(String vendorName) { this.vendorName = vendorName; }
+        public void setVendorId(int vendorId) {
+            this.vendorId = vendorId;
+        }
 
-        public BigDecimal getTotalPurchaseCost() { return totalPurchaseCost; }
-        public void setTotalPurchaseCost(BigDecimal totalPurchaseCost) { this.totalPurchaseCost = totalPurchaseCost; }
+        public String getVendorName() {
+            return vendorName;
+        }
+
+        public void setVendorName(String vendorName) {
+            this.vendorName = vendorName;
+        }
+
+        public BigDecimal getTotalPurchaseCost() {
+            return totalPurchaseCost;
+        }
+
+        public void setTotalPurchaseCost(BigDecimal totalPurchaseCost) {
+            this.totalPurchaseCost = totalPurchaseCost;
+        }
     }
 }

@@ -14,8 +14,8 @@ import java.util.List;
 
 /**
  * ProfitReportService
- * Generates profit reports based on sales, purchases, and discounts
- * Formula: Profit = (Sales Revenue) - (Purchase Cost) - (Discounts)
+ * Generates profit reports based on sales and purchases
+ * Formula: Profit = (Sales Revenue) - (Purchase Cost)
  */
 public class ProfitReportService {
 
@@ -24,6 +24,7 @@ public class ProfitReportService {
     private final PurchaseDetailsDAO purchaseDetailsDAO = new PurchaseDetailsDAO();
     private final SalesDetailsDAO salesDetailsDAO = new SalesDetailsDAO();
     private final MedicineDAO medicineDAO = new MedicineDAO();
+    private final VendorDAO vendorDAO = new VendorDAO();
 
     // ==========================
     // PUBLIC ENTRY POINTS
@@ -37,6 +38,9 @@ public class ProfitReportService {
 
         try {
             conn = DBConnection.getConnection();
+            if (conn == null) {
+                throw new RuntimeException("Database connection unavailable");
+            }
             conn.setAutoCommit(false);
 
             // ==========================
@@ -55,18 +59,11 @@ public class ProfitReportService {
                     request.getStartDate(),
                     request.getEndDate());
 
-            // 3️⃣ Get total discounts
-            BigDecimal totalDiscounts = calculateTotalDiscounts(
-                    conn,
-                    request.getStartDate(),
-                    request.getEndDate());
-
-            // 4️⃣ Calculate profit
+            // 3️⃣ Calculate profit
             BigDecimal totalProfit = totalSalesRevenue
-                    .subtract(totalPurchaseCost)
-                    .subtract(totalDiscounts);
+                    .subtract(totalPurchaseCost);
 
-            // 5️⃣ Calculate profit margin
+            // 4️⃣ Calculate profit margin
             BigDecimal profitMargin = BigDecimal.ZERO;
             if (totalSalesRevenue.compareTo(BigDecimal.ZERO) > 0) {
                 profitMargin = totalProfit
@@ -90,8 +87,9 @@ public class ProfitReportService {
                     request.getStartDate(),
                     request.getEndDate());
 
-            List<ProfitReportResponse.MedicineProfitDetail> medicineProfitDtos = toMedicineProfitDtos(medicineProfits);
-            List<ProfitReportResponse.VendorProfitDetail> vendorProfitDtos = toVendorProfitDtos(vendorProfits);
+            List<ProfitReportResponse.MedicineProfitDetail> medicineProfitDtos = toMedicineProfitDtos(conn,
+                    medicineProfits);
+            List<ProfitReportResponse.VendorProfitDetail> vendorProfitDtos = toVendorProfitDtos(conn, vendorProfits);
 
             conn.commit();
 
@@ -100,7 +98,6 @@ public class ProfitReportService {
                     request.getEndDate(),
                     totalSalesRevenue,
                     totalPurchaseCost,
-                    totalDiscounts,
                     totalProfit,
                     profitMargin,
                     medicineProfitDtos,
@@ -138,6 +135,9 @@ public class ProfitReportService {
 
         try {
             conn = DBConnection.getConnection();
+            if (conn == null) {
+                throw new RuntimeException("Database connection unavailable");
+            }
             conn.setAutoCommit(false);
 
             // Get medicine details
@@ -230,23 +230,6 @@ public class ProfitReportService {
     }
 
     /**
-     * Calculate total discounts between dates
-     */
-    private BigDecimal calculateTotalDiscounts(Connection conn, LocalDate startDate, LocalDate endDate)
-            throws SQLException {
-        List<Sales> sales = salesDAO.getSalesBetweenDates(conn, startDate, endDate);
-
-        BigDecimal totalDiscounts = BigDecimal.ZERO;
-        for (Sales sale : sales) {
-            BigDecimal discount = sale.getDiscountAmount();
-            if (discount != null) {
-                totalDiscounts = totalDiscounts.add(discount);
-            }
-        }
-        return totalDiscounts;
-    }
-
-    /**
      * Calculate profit breakdown by medicine
      */
     private List<MedicineProfitDetail> calculateProfitByMedicine(Connection conn, LocalDate startDate,
@@ -269,7 +252,7 @@ public class ProfitReportService {
                 int quantity = item.getQuantity();
 
                 // Get purchase cost (average or latest)
-                BigDecimal purchasePrice = getPurchasePriceForMedicine(conn, medicineId);
+                BigDecimal purchasePrice = getPurchasePriceForMedicine(conn, medicineId, startDate, endDate);
 
                 BigDecimal revenue = salePrice.multiply(BigDecimal.valueOf(quantity));
                 BigDecimal cost = purchasePrice.multiply(BigDecimal.valueOf(quantity));
@@ -318,9 +301,20 @@ public class ProfitReportService {
     /**
      * Get purchase price for a medicine (average or latest)
      */
-    private BigDecimal getPurchasePriceForMedicine(Connection conn, int medicineId)
+    private BigDecimal getPurchasePriceForMedicine(
+            Connection conn,
+            int medicineId,
+            LocalDate startDate,
+            LocalDate endDate)
             throws SQLException {
-        BigDecimal price = purchaseDetailsDAO.getAveragePurchasePriceForMedicine(conn, medicineId);
+        BigDecimal price = purchaseDetailsDAO.getAveragePurchasePriceForMedicineInDateRange(
+                conn,
+                medicineId,
+                startDate,
+                endDate);
+        if (price == null) {
+            price = purchaseDetailsDAO.getAveragePurchasePriceForMedicine(conn, medicineId);
+        }
         return price != null ? price : BigDecimal.ZERO;
     }
 
@@ -356,10 +350,13 @@ public class ProfitReportService {
         return cost;
     }
 
-    private List<ProfitReportResponse.MedicineProfitDetail> toMedicineProfitDtos(List<MedicineProfitDetail> details) {
+    private List<ProfitReportResponse.MedicineProfitDetail> toMedicineProfitDtos(
+            Connection conn,
+            List<MedicineProfitDetail> details) {
         List<ProfitReportResponse.MedicineProfitDetail> dtos = new ArrayList<>();
         for (MedicineProfitDetail detail : details) {
-            String medicineName = "Medicine-" + detail.getMedicineId();
+            Medicine medicine = medicineDAO.getMedicineById(conn, detail.getMedicineId());
+            String medicineName = medicine != null ? medicine.getMedicineName() : "Medicine-" + detail.getMedicineId();
             dtos.add(new ProfitReportResponse.MedicineProfitDetail(
                     detail.getMedicineId(),
                     medicineName,
@@ -372,12 +369,16 @@ public class ProfitReportService {
         return dtos;
     }
 
-    private List<ProfitReportResponse.VendorProfitDetail> toVendorProfitDtos(List<VendorProfitDetail> details) {
+    private List<ProfitReportResponse.VendorProfitDetail> toVendorProfitDtos(
+            Connection conn,
+            List<VendorProfitDetail> details) {
         List<ProfitReportResponse.VendorProfitDetail> dtos = new ArrayList<>();
         for (VendorProfitDetail detail : details) {
+            Vendor vendor = vendorDAO.getVendorById(conn, detail.getVendorId());
+            String vendorName = vendor != null ? vendor.getVendorName() : "Vendor-" + detail.getVendorId();
             dtos.add(new ProfitReportResponse.VendorProfitDetail(
                     detail.getVendorId(),
-                    "",
+                    vendorName,
                     detail.getTotalPurchaseCost()));
         }
         return dtos;

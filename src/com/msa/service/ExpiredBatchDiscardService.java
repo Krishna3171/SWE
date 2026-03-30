@@ -25,8 +25,7 @@ public class ExpiredBatchDiscardService {
             conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            List<Batch> expiredBatches =
-                    batchDAO.getExpiredBatches(conn);
+            List<Batch> expiredBatches = batchDAO.getExpiredBatches(conn);
 
             List<ExpiredBatchReportItem> reportItems = new ArrayList<>();
 
@@ -35,18 +34,18 @@ public class ExpiredBatchDiscardService {
 
             for (Batch batch : expiredBatches) {
 
-                Medicine medicine =
-                        medicineDAO.getMedicineById(
-                                conn,
-                                batch.getMedicineId()
-                        );
+                Medicine medicine = medicineDAO.getMedicineById(
+                        conn,
+                        batch.getMedicineId());
+                String medicineCode = medicine != null
+                        ? medicine.getMedicineCode()
+                        : "UNKNOWN-" + batch.getMedicineId();
 
                 // 1️⃣ Update inventory
                 inventoryDAO.reduceQuantity(
                         conn,
                         batch.getMedicineId(),
-                        batch.getQuantity()
-                );
+                        batch.getQuantity());
 
                 // 2️⃣ Delete batch
                 batchDAO.deleteBatch(conn, batch.getBatchId());
@@ -54,13 +53,11 @@ public class ExpiredBatchDiscardService {
                 // 3️⃣ Add report entry
                 reportItems.add(
                         new ExpiredBatchReportItem(
-                                medicine.getMedicineCode(),
+                                medicineCode,
                                 batch.getBatchNumber(),
                                 batch.getExpiryDate(),
                                 batch.getQuantity(),
-                                batch.getVendorId()
-                        )
-                );
+                                batch.getVendorId()));
 
                 totalBatches++;
                 totalUnits += batch.getQuantity();
@@ -71,8 +68,7 @@ public class ExpiredBatchDiscardService {
             return new ExpiredBatchReport(
                     reportItems,
                     totalBatches,
-                    totalUnits
-            );
+                    totalUnits);
 
         } catch (Exception e) {
 
@@ -86,13 +82,15 @@ public class ExpiredBatchDiscardService {
 
             throw new RuntimeException(
                     "Expired batch discard failed",
-                    e
-            );
+                    e);
 
         } finally {
             if (conn != null) {
-                try { conn.close(); }
-                catch (SQLException e) { e.printStackTrace(); }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

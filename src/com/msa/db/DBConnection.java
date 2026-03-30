@@ -15,7 +15,7 @@ public class DBConnection {
         } catch (Exception e) {
             System.out.println("❌ Database connection failed");
             e.printStackTrace();
-            return null;
+            throw new RuntimeException("Database connection failed", e);
         }
     }
 }
