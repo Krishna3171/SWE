@@ -1,6 +1,7 @@
 package com.msa.dao;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,25 +17,26 @@ public class PurchaseDetailsDAO {
     public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) {
 
         String sql = """
-            INSERT INTO Purchase_Details (
-                purchase_id,
-                medicine_id,
-                quantity,
-                unit_price,
-                batch_id
-            )
-            VALUES (?, ?, ?, ?, ?)
-        """;
+                    INSERT INTO Purchase_Details (
+                        purchase_id,
+                        medicine_id,
+                        quantity,
+                        unit_price,
+                        batch_id,
+                        purchase_date
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, detail.getPurchaseId());
             ps.setInt(2, detail.getMedicineId());
             ps.setInt(3, detail.getQuantity());
             ps.setBigDecimal(4, detail.getUnitPrice());
             ps.setInt(5, detail.getBatchId());
+            ps.setDate(6, Date.valueOf(detail.getPurchaseDate()));
 
             return ps.executeUpdate() > 0;
 
@@ -51,13 +53,12 @@ public class PurchaseDetailsDAO {
         List<PurchaseDetails> details = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Purchase_Details
-            WHERE purchase_id = ?
-        """;
+                    SELECT * FROM Purchase_Details
+                    WHERE purchase_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, purchaseId);
             ResultSet rs = ps.executeQuery();
@@ -69,6 +70,7 @@ public class PurchaseDetailsDAO {
                 detail.setQuantity(rs.getInt("quantity"));
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
                 details.add(detail);
             }
 
@@ -85,13 +87,12 @@ public class PurchaseDetailsDAO {
         List<PurchaseDetails> details = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Purchase_Details
-            WHERE medicine_id = ?
-        """;
+                    SELECT * FROM Purchase_Details
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ResultSet rs = ps.executeQuery();
@@ -103,6 +104,7 @@ public class PurchaseDetailsDAO {
                 detail.setQuantity(rs.getInt("quantity"));
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
                 details.add(detail);
             }
 
@@ -117,14 +119,13 @@ public class PurchaseDetailsDAO {
     public BigDecimal getAveragePurchasePriceForMedicine(Connection conn, int medicineId) {
 
         String sql = """
-            SELECT AVG(unit_price) as avg_price
-            FROM Purchase_Details
-            WHERE medicine_id = ?
-        """;
+                    SELECT AVG(unit_price) as avg_price
+                    FROM Purchase_Details
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ResultSet rs = ps.executeQuery();
@@ -144,13 +145,12 @@ public class PurchaseDetailsDAO {
     public BigDecimal getUnitPurchasePrice(Connection conn, int purchaseId, int medicineId) {
 
         String sql = """
-            SELECT unit_price FROM Purchase_Details
-            WHERE purchase_id = ? AND medicine_id = ?
-        """;
+                    SELECT unit_price FROM Purchase_Details
+                    WHERE purchase_id = ? AND medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, purchaseId);
             ps.setInt(2, medicineId);
@@ -171,13 +171,12 @@ public class PurchaseDetailsDAO {
     public int getQuantity(Connection conn, int purchaseId, int medicineId) {
 
         String sql = """
-            SELECT quantity FROM Purchase_Details
-            WHERE purchase_id = ? AND medicine_id = ?
-        """;
+                    SELECT quantity FROM Purchase_Details
+                    WHERE purchase_id = ? AND medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, purchaseId);
             ps.setInt(2, medicineId);
@@ -192,5 +191,45 @@ public class PurchaseDetailsDAO {
         }
 
         return 0;
+    }
+
+    // GET purchase details by medicine ID and purchase date range
+    public List<PurchaseDetails> getPurchaseDetailsByMedicineIdInDateRange(
+            Connection conn,
+            int medicineId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+
+        List<PurchaseDetails> details = new ArrayList<>();
+
+        String sql = """
+                    SELECT * FROM Purchase_Details
+                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ?
+                """;
+
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, medicineId);
+            ps.setDate(2, Date.valueOf(startDate));
+            ps.setDate(3, Date.valueOf(endDate));
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                details.add(detail);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
     }
 }

@@ -24,7 +24,6 @@ public class ProfitReportService {
     private final PurchaseDetailsDAO purchaseDetailsDAO = new PurchaseDetailsDAO();
     private final SalesDetailsDAO salesDetailsDAO = new SalesDetailsDAO();
     private final MedicineDAO medicineDAO = new MedicineDAO();
-    private final InventoryDAO inventoryDAO = new InventoryDAO();
 
     // ==========================
     // PUBLIC ENTRY POINTS
@@ -48,22 +47,19 @@ public class ProfitReportService {
             BigDecimal totalSalesRevenue = calculateTotalSalesRevenue(
                     conn,
                     request.getStartDate(),
-                    request.getEndDate()
-            );
+                    request.getEndDate());
 
             // 2️⃣ Get total purchase cost
             BigDecimal totalPurchaseCost = calculateTotalPurchaseCost(
                     conn,
                     request.getStartDate(),
-                    request.getEndDate()
-            );
+                    request.getEndDate());
 
             // 3️⃣ Get total discounts
             BigDecimal totalDiscounts = calculateTotalDiscounts(
                     conn,
                     request.getStartDate(),
-                    request.getEndDate()
-            );
+                    request.getEndDate());
 
             // 4️⃣ Calculate profit
             BigDecimal totalProfit = totalSalesRevenue
@@ -86,15 +82,16 @@ public class ProfitReportService {
             List<MedicineProfitDetail> medicineProfits = calculateProfitByMedicine(
                     conn,
                     request.getStartDate(),
-                    request.getEndDate()
-            );
+                    request.getEndDate());
 
             // Get profit by vendor
             List<VendorProfitDetail> vendorProfits = calculateProfitByVendor(
                     conn,
                     request.getStartDate(),
-                    request.getEndDate()
-            );
+                    request.getEndDate());
+
+            List<ProfitReportResponse.MedicineProfitDetail> medicineProfitDtos = toMedicineProfitDtos(medicineProfits);
+            List<ProfitReportResponse.VendorProfitDetail> vendorProfitDtos = toVendorProfitDtos(vendorProfits);
 
             conn.commit();
 
@@ -106,10 +103,9 @@ public class ProfitReportService {
                     totalDiscounts,
                     totalProfit,
                     profitMargin,
-                    medicineProfits,
-                    vendorProfits,
-                    "Profit report generated successfully"
-            );
+                    medicineProfitDtos,
+                    vendorProfitDtos,
+                    "Profit report generated successfully");
 
         } catch (Exception e) {
             if (conn != null) {
@@ -121,8 +117,7 @@ public class ProfitReportService {
             }
             throw new RuntimeException(
                     "Profit report generation failed.",
-                    e
-            );
+                    e);
 
         } finally {
             if (conn != null) {
@@ -177,8 +172,7 @@ public class ProfitReportService {
                     medicineCost,
                     profit,
                     profitMargin,
-                    "Medicine profit report generated successfully"
-            );
+                    "Medicine profit report generated successfully");
 
         } catch (Exception e) {
             if (conn != null) {
@@ -190,8 +184,7 @@ public class ProfitReportService {
             }
             throw new RuntimeException(
                     "Medicine profit report generation failed.",
-                    e
-            );
+                    e);
 
         } finally {
             if (conn != null) {
@@ -214,7 +207,7 @@ public class ProfitReportService {
     private BigDecimal calculateTotalSalesRevenue(Connection conn, LocalDate startDate, LocalDate endDate)
             throws SQLException {
         List<Sales> sales = salesDAO.getSalesBetweenDates(conn, startDate, endDate);
-        
+
         BigDecimal totalRevenue = BigDecimal.ZERO;
         for (Sales sale : sales) {
             totalRevenue = totalRevenue.add(sale.getTotalAmount());
@@ -228,7 +221,7 @@ public class ProfitReportService {
     private BigDecimal calculateTotalPurchaseCost(Connection conn, LocalDate startDate, LocalDate endDate)
             throws SQLException {
         List<Purchase> purchases = purchaseDAO.getPurchasesBetweenDates(conn, startDate, endDate);
-        
+
         BigDecimal totalCost = BigDecimal.ZERO;
         for (Purchase purchase : purchases) {
             totalCost = totalCost.add(purchase.getTotalAmount());
@@ -242,7 +235,7 @@ public class ProfitReportService {
     private BigDecimal calculateTotalDiscounts(Connection conn, LocalDate startDate, LocalDate endDate)
             throws SQLException {
         List<Sales> sales = salesDAO.getSalesBetweenDates(conn, startDate, endDate);
-        
+
         BigDecimal totalDiscounts = BigDecimal.ZERO;
         for (Sales sale : sales) {
             BigDecimal discount = sale.getDiscountAmount();
@@ -256,43 +249,42 @@ public class ProfitReportService {
     /**
      * Calculate profit breakdown by medicine
      */
-    private List<MedicineProfitDetail> calculateProfitByMedicine(Connection conn, LocalDate startDate, LocalDate endDate)
+    private List<MedicineProfitDetail> calculateProfitByMedicine(Connection conn, LocalDate startDate,
+            LocalDate endDate)
             throws SQLException {
         List<MedicineProfitDetail> profitDetails = new ArrayList<>();
-        
+
         // Get all sales between dates
         List<Sales> sales = salesDAO.getSalesBetweenDates(conn, startDate, endDate);
-        
+
         // Group by medicine
         java.util.Map<Integer, MedicineProfitDetail> medicineMap = new java.util.HashMap<>();
-        
+
         for (Sales sale : sales) {
             List<SalesDetails> saleItems = salesDetailsDAO.getSalesDetailsBySalesId(conn, sale.getSalesId());
-            
+
             for (SalesDetails item : saleItems) {
                 int medicineId = item.getMedicineId();
                 BigDecimal salePrice = item.getUnitSalePrice();
                 int quantity = item.getQuantity();
-                
+
                 // Get purchase cost (average or latest)
                 BigDecimal purchasePrice = getPurchasePriceForMedicine(conn, medicineId);
-                
+
                 BigDecimal revenue = salePrice.multiply(BigDecimal.valueOf(quantity));
                 BigDecimal cost = purchasePrice.multiply(BigDecimal.valueOf(quantity));
-                BigDecimal profit = revenue.subtract(cost);
-                
+
                 MedicineProfitDetail detail = medicineMap.getOrDefault(
                         medicineId,
-                        new MedicineProfitDetail(medicineId)
-                );
+                        new MedicineProfitDetail(medicineId));
                 detail.addRevenue(revenue);
                 detail.addCost(cost);
                 detail.addQuantity(quantity);
-                
+
                 medicineMap.put(medicineId, detail);
             }
         }
-        
+
         profitDetails.addAll(medicineMap.values());
         return profitDetails;
     }
@@ -304,22 +296,21 @@ public class ProfitReportService {
             throws SQLException {
         List<VendorProfitDetail> vendorProfits = new ArrayList<>();
         java.util.Map<Integer, VendorProfitDetail> vendorMap = new java.util.HashMap<>();
-        
+
         // Get all purchases between dates
         List<Purchase> purchases = purchaseDAO.getPurchasesBetweenDates(conn, startDate, endDate);
-        
+
         for (Purchase purchase : purchases) {
             int vendorId = purchase.getVendorId();
-            
+
             VendorProfitDetail detail = vendorMap.getOrDefault(
                     vendorId,
-                    new VendorProfitDetail(vendorId)
-            );
+                    new VendorProfitDetail(vendorId));
             detail.addPurchaseCost(purchase.getTotalAmount());
-            
+
             vendorMap.put(vendorId, detail);
         }
-        
+
         vendorProfits.addAll(vendorMap.values());
         return vendorProfits;
     }
@@ -339,7 +330,7 @@ public class ProfitReportService {
     private BigDecimal calculateMedicineSalesRevenue(Connection conn, int medicineId)
             throws SQLException {
         List<SalesDetails> items = salesDetailsDAO.getSalesDetailsByMedicineId(conn, medicineId);
-        
+
         BigDecimal revenue = BigDecimal.ZERO;
         for (SalesDetails item : items) {
             BigDecimal lineTotal = item.getUnitSalePrice()
@@ -355,7 +346,7 @@ public class ProfitReportService {
     private BigDecimal calculateMedicinePurchaseCost(Connection conn, int medicineId)
             throws SQLException {
         List<PurchaseDetails> items = purchaseDetailsDAO.getPurchaseDetailsByMedicineId(conn, medicineId);
-        
+
         BigDecimal cost = BigDecimal.ZERO;
         for (PurchaseDetails item : items) {
             BigDecimal lineTotal = item.getUnitPurchasePrice()
@@ -363,6 +354,33 @@ public class ProfitReportService {
             cost = cost.add(lineTotal);
         }
         return cost;
+    }
+
+    private List<ProfitReportResponse.MedicineProfitDetail> toMedicineProfitDtos(List<MedicineProfitDetail> details) {
+        List<ProfitReportResponse.MedicineProfitDetail> dtos = new ArrayList<>();
+        for (MedicineProfitDetail detail : details) {
+            String medicineName = "Medicine-" + detail.getMedicineId();
+            dtos.add(new ProfitReportResponse.MedicineProfitDetail(
+                    detail.getMedicineId(),
+                    medicineName,
+                    detail.getTotalRevenue(),
+                    detail.getTotalCost(),
+                    detail.getProfit(),
+                    detail.getProfitMargin(),
+                    detail.getTotalQuantity()));
+        }
+        return dtos;
+    }
+
+    private List<ProfitReportResponse.VendorProfitDetail> toVendorProfitDtos(List<VendorProfitDetail> details) {
+        List<ProfitReportResponse.VendorProfitDetail> dtos = new ArrayList<>();
+        for (VendorProfitDetail detail : details) {
+            dtos.add(new ProfitReportResponse.VendorProfitDetail(
+                    detail.getVendorId(),
+                    "",
+                    detail.getTotalPurchaseCost()));
+        }
+        return dtos;
     }
 
     // ==========================
@@ -408,10 +426,21 @@ public class ProfitReportService {
         }
 
         // Getters
-        public int getMedicineId() { return medicineId; }
-        public BigDecimal getTotalRevenue() { return totalRevenue; }
-        public BigDecimal getTotalCost() { return totalCost; }
-        public int getTotalQuantity() { return totalQuantity; }
+        public int getMedicineId() {
+            return medicineId;
+        }
+
+        public BigDecimal getTotalRevenue() {
+            return totalRevenue;
+        }
+
+        public BigDecimal getTotalCost() {
+            return totalCost;
+        }
+
+        public int getTotalQuantity() {
+            return totalQuantity;
+        }
     }
 
     /**
@@ -430,7 +459,12 @@ public class ProfitReportService {
         }
 
         // Getters
-        public int getVendorId() { return vendorId; }
-        public BigDecimal getTotalPurchaseCost() { return totalPurchaseCost; }
+        public int getVendorId() {
+            return vendorId;
+        }
+
+        public BigDecimal getTotalPurchaseCost() {
+            return totalPurchaseCost;
+        }
     }
 }

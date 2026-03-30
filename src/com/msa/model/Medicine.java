@@ -11,11 +11,12 @@ public class Medicine {
     private BigDecimal unitSellingPrice;
     private BigDecimal unitPurchasePrice;
 
-    public Medicine() {}
+    public Medicine() {
+    }
 
     public Medicine(String medicineCode, String tradeName,
-                    String genericName, BigDecimal unitSellingPrice,
-                    BigDecimal unitPurchasePrice) {
+            String genericName, BigDecimal unitSellingPrice,
+            BigDecimal unitPurchasePrice) {
         this.medicineCode = medicineCode;
         this.tradeName = tradeName;
         this.genericName = genericName;
@@ -23,24 +24,58 @@ public class Medicine {
         this.unitPurchasePrice = unitPurchasePrice;
     }
 
-    public int getMedicineId() { return medicineId; }
-    public void setMedicineId(int medicineId) { this.medicineId = medicineId; }
+    public int getMedicineId() {
+        return medicineId;
+    }
 
-    public String getMedicineCode() { return medicineCode; }
-    public void setMedicineCode(String medicineCode) { this.medicineCode = medicineCode; }
+    public void setMedicineId(int medicineId) {
+        this.medicineId = medicineId;
+    }
 
-    public String getTradeName() { return tradeName; }
-    public void setTradeName(String tradeName) { this.tradeName = tradeName; }
+    public String getMedicineCode() {
+        return medicineCode;
+    }
 
-    public String getGenericName() { return genericName; }
-    public void setGenericName(String genericName) { this.genericName = genericName; }
+    public void setMedicineCode(String medicineCode) {
+        this.medicineCode = medicineCode;
+    }
 
-    public BigDecimal getUnitSellingPrice() { return unitSellingPrice; }
+    public String getTradeName() {
+        return tradeName;
+    }
+
+    public void setTradeName(String tradeName) {
+        this.tradeName = tradeName;
+    }
+
+    public String getMedicineName() {
+        return tradeName;
+    }
+
+    public void setMedicineName(String medicineName) {
+        this.tradeName = medicineName;
+    }
+
+    public String getGenericName() {
+        return genericName;
+    }
+
+    public void setGenericName(String genericName) {
+        this.genericName = genericName;
+    }
+
+    public BigDecimal getUnitSellingPrice() {
+        return unitSellingPrice;
+    }
+
     public void setUnitSellingPrice(BigDecimal unitSellingPrice) {
         this.unitSellingPrice = unitSellingPrice;
     }
 
-    public BigDecimal getUnitPurchasePrice() { return unitPurchasePrice; }
+    public BigDecimal getUnitPurchasePrice() {
+        return unitPurchasePrice;
+    }
+
     public void setUnitPurchasePrice(BigDecimal unitPurchasePrice) {
         this.unitPurchasePrice = unitPurchasePrice;
     }

@@ -75,7 +75,8 @@ public class SalesService {
                         // ==========================
                         // PHASE 2 — WRITE (ALL OR NOTHING)
                         // ==========================
-                        int saleId = salesDAO.insertSale(conn, totalAmount);
+                        LocalDate saleDate = LocalDate.now();
+                        int saleId = salesDAO.insertSale(conn, saleDate, totalAmount);
 
                         for (SaleLinePlan line : salePlan) {
 
@@ -83,7 +84,8 @@ public class SalesService {
                                                 saleId,
                                                 line.getMedicineId(),
                                                 line.getQuantity(),
-                                                line.getUnitPrice());
+                                                line.getUnitPrice(),
+                                                saleDate);
 
                                 salesDetailsDAO.insertSalesDetail(conn, detail);
 
