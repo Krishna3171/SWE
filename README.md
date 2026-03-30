@@ -24,11 +24,6 @@ The Pharmacy Management System follows a layered architecture:
    cd SWE
    ```
 2. **Install Dependencies**:
-   - For Frontend:
-     ```bash
-     cd frontend
-     npm install
-     ```
    - For Backend:
      ```bash
      cd backend
