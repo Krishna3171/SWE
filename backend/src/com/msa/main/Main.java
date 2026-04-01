@@ -16,10 +16,10 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) {
-        if (shouldRunDemo(args)) {
-            runDemo();
-            return;
-        }
+        // if (shouldRunDemo(args)) {
+        //     runDemo();
+        //     return;
+        // }
 
         startApiServer();
     }
