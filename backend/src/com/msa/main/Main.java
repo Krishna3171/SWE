@@ -1,5 +1,7 @@
 package com.msa.main;
 
+import com.msa.api.ApiServer;
+import com.msa.config.ServerConfig;
 import com.msa.dto.*;
 import com.msa.service.ExpiredBatchDiscardService;
 import com.msa.service.ProfitReportService;
@@ -14,7 +16,46 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) {
+        if (shouldRunDemo(args)) {
+            runDemo();
+            return;
+        }
 
+        startApiServer();
+    }
+
+    private static boolean shouldRunDemo(String[] args) {
+        if (args == null) {
+            return false;
+        }
+
+        for (String arg : args) {
+            if ("demo".equalsIgnoreCase(arg) || "--demo".equalsIgnoreCase(arg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void startApiServer() {
+        int port = ServerConfig.getPort();
+
+        try {
+            ApiServer apiServer = new ApiServer(port);
+            apiServer.start();
+
+            System.out.println("MSA API server started on port " + port);
+            System.out.println("Health endpoint: http://localhost:" + port + "/api/health");
+            System.out.println("Login endpoint: http://localhost:" + port + "/api/users/login");
+
+            Runtime.getRuntime().addShutdownHook(new Thread(apiServer::stop));
+        } catch (Exception e) {
+            System.out.println("Failed to start API server: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void runDemo() {
         PurchaseService purchaseService = new PurchaseService();
         SalesService salesService = new SalesService();
         ProfitReportService profitReportService = new ProfitReportService();

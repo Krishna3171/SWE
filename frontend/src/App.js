@@ -2,27 +2,11 @@ import "./App.css";
 import { useState } from "react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView";
-import { MOCK_USERS } from "./data/mockData";
+import { authenticateUser } from "./services/authService";
 
 const APP_VIEW = {
   LOGIN: "login",
   DASHBOARD: "dashboard",
-};
-
-const authenticateUser = async (credentials) => {
-  // TODO: Replace mock lookup with backend API request.
-  const user = MOCK_USERS.find(
-    (item) =>
-      item.username === credentials.username &&
-      item.password === credentials.password &&
-      item.role === credentials.role,
-  );
-
-  if (!user) {
-    throw new Error("Invalid credentials for the selected role.");
-  }
-
-  return user;
 };
 
 function App() {
