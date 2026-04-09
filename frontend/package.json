@@ -14,10 +14,15 @@
     "recharts": "^3.8.1",
     "web-vitals": "^2.1.4"
   },
+  "devDependencies": {
+    "selenium-webdriver": "^4.15.0",
+    "chromedriver": "^119.0.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:selenium": "jest selenium/UITests.test.js",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
