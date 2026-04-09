@@ -122,4 +122,37 @@ public class SalesDAO {
             java.time.LocalDate endDate) {
         return getSalesInDateRange(conn, startDate, endDate);
     }
+
+    // GET the most recent N sales
+    public List<Sales> getRecentSales(Connection conn, int limit) {
+
+        List<Sales> salesList = new ArrayList<>();
+
+        String sql = """
+                    SELECT * FROM Sales
+                    ORDER BY sale_id DESC
+                    LIMIT ?
+                """;
+
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, limit);
+
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Sales sale = new Sales();
+                sale.setSaleId(rs.getInt("sale_id"));
+                sale.setSaleDate(rs.getDate("sale_date").toLocalDate());
+                sale.setTotalAmount(rs.getBigDecimal("total_amount"));
+                salesList.add(sale);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return salesList;
+    }
 }

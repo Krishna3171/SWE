@@ -1,12 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #0B0E1A;
+  color: #E8ECF4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #203041;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,212,200,0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,212,200,0.3); }
+
+/* Print — hide printable area on screen */
+.printable-area { display: none; }
+
+@media print {
+  body * { visibility: hidden; }
+  .printable-area, .printable-area * { visibility: visible; display: block; }
+  .printable-area {
+    position: absolute; left: 0; top: 0; width: 100%;
+    color: #000; background: #fff; padding: 20px;
+  }
+  .printable-area table { display: table; }
+  .printable-area thead { display: table-header-group; }
+  .printable-area tbody { display: table-row-group; }
+  .printable-area tr { display: table-row; }
+  .printable-area th, .printable-area td { display: table-cell; }
+  .no-print { display: none !important; }
 }

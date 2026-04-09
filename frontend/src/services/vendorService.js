@@ -1,0 +1,23 @@
+const API_BASE = "http://localhost:8080/api";
+
+export const getAllVendors = async () => {
+  const response = await fetch(`${API_BASE}/vendors`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch vendors');
+  }
+  return response.json();
+};
+
+export const createVendor = async (vendorData) => {
+  const response = await fetch(`${API_BASE}/vendors`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(vendorData)
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to create vendor');
+  }
+  return response.json();
+};

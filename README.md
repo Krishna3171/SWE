@@ -23,36 +23,54 @@ The Pharmacy Management System follows a layered architecture:
 
 ## Setup Instructions
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Krishna3171/SWE.git
-   cd SWE
-   ```
-2. **Install Dependencies**:
-   - Backend uses core Java with PostgreSQL JDBC driver already in `backend/lib`.
-   - Frontend dependencies:
-     ```bash
-     cd frontend
-     npm install
-     ```
-3. **Configure Database**:
-   - Backend currently uses direct JDBC configuration in code for POC.
-   - Update DB values in `backend/src/com/msa/db/DBConnection.java` if needed.
-   - Optional environment variables:
-     - `PORT` (default `8080`)
-     - `HTTP_THREAD_POOL_SIZE` (auto-calculated if omitted)
-4. **Run the Application**:
-   - Start the backend server (core Java API host):
-     ```bash
-     cd backend
-     javac -cp "lib/*" -d out (Get-ChildItem -Path src -Recurse -Filter *.java | ForEach-Object { $_.FullName })
-     java -cp "out;lib/*" com.msa.main.Main
-     ```
-   - Start the frontend application:
-     ```bash
-     cd frontend
-     npm start
-     ```
+### Prerequisites
+- **Java JDK** (Version 17+ recommended)
+- **Node.js** (Version 16+ recommended for React)
+- **Git** (to clone the repo)
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/Krishna3171/SWE.git
+cd SWE
+```
+
+### 2. Configure Database
+The backend currently connects to a remote Supabase PostgreSQL database automatically via `backend/src/com/msa/db/DBConnection.java`. 
+There is **no localized database setup required** to test this POC.
+
+### 3. Start the Java Backend
+Open a terminal inside the `/backend` folder.
+
+**On Mac / Linux (Terminal / zsh / bash):**
+```bash
+cd backend
+mkdir -p out
+javac -cp "lib/*" -d out $(find src -name "*.java")
+java -cp "out:lib/*" com.msa.main.Main
+```
+> **Note:** If you get a `java.net.BindException: Address already in use` error, it means the backend is already running. You can kill the old instance by running: `lsof -ti :8080 | xargs kill -9`
+
+**On Windows (PowerShell):**
+```powershell
+cd backend
+mkdir out -Force
+javac -cp "lib/*" -d out (Get-ChildItem -Path src -Recurse -Filter *.java | ForEach-Object { $_.FullName })
+java -cp "out;lib/*" com.msa.main.Main
+```
+> **Note:** If you get a `java.net.BindException: Address already in use` error, you can kill the old instance by running: `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess -Force`
+
+You should see: `MSA API server started on port 8080`. Leave this terminal open.
+
+### 4. Start the React Frontend
+Open a **new** separate terminal window inside the `/frontend` folder.
+
+```bash
+cd frontend
+npm install    # Installs the dependencies (run this only the first time)
+npm start      # Starts the React development server
+```
+
+The application will automatically open in your browser at `http://localhost:3000`.
 
 ## Usage Examples
 
@@ -61,10 +79,6 @@ The Pharmacy Management System follows a layered architecture:
   2.  Click on "Add Product" and fill in the details.
   3.  Save the product to update the inventory.
 
-- **Processing a Prescription**:
-  1.  Navigate to the "Prescriptions" section.
-  2.  Enter the patient details and prescribed medications.
-  3.  Confirm and save the prescription.
 
 - **Generating an Invoice**:
   1.  Go to the "Billing" section.

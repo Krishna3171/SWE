@@ -64,7 +64,7 @@ public class MedicineDAO {
 
             // 1️⃣ Use a temporary unique code for insert.
             // Final code is generated after DB returns the real medicine_id.
-            String temporaryCode = "TMP-" + UUID.randomUUID();
+            String temporaryCode = "TMP-" + UUID.randomUUID().toString().substring(0, 8);
             medicine.setMedicineCode(temporaryCode);
 
             // 2️⃣ Bind parameters
