@@ -11,12 +11,17 @@ export default function MedicineManagement() {
   const [form, setForm] = useState({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
   const [toast, setToast] = useState(null);
 
-  const fetchMedicines = async () => {
+  const fetchMedicines = async ({ throwOnError = false } = {}) => {
     try {
       const data = await getAllMedicines();
       setMedicines(data);
+      return data;
     } catch (error) {
       console.error(error);
+      if (throwOnError) {
+        throw error;
+      }
+      return null;
     } finally {
       setLoading(false);
     }
@@ -29,13 +34,21 @@ export default function MedicineManagement() {
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      // Optimistic UI so tests/users see immediate feedback.
+      const created = await addMedicine(form);
+      const refreshed = await fetchMedicines({ throwOnError: true });
+      if (
+        created &&
+        created.medicineCode &&
+        Array.isArray(refreshed) &&
+        !refreshed.some((item) => item.medicineCode === created.medicineCode)
+      ) {
+        throw new Error("Medicine was not visible after refresh. Please try again.");
+      }
       setIsAdding(false);
+      setSearch("");
+      setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
       setToast({ type: "success", msg: "Medicine Added Successfully!" });
       setTimeout(() => setToast(null), 3000);
-      await addMedicine(form);
-      setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
-      fetchMedicines();
     } catch (e) {
       setToast({ type: "error", msg: e.message });
       setTimeout(() => setToast(null), 3000);

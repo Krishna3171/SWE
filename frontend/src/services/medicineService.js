@@ -1,8 +1,9 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const getAllMedicines = async () => {
-  const response = await fetch(`${API_BASE_URL}/medicines`, {
+  const response = await fetch(`${API_BASE_URL}/medicines?t=${Date.now()}`, {
     method: "GET",
+    cache: "no-store",
   });
   if (!response.ok) {
     throw new Error("Failed to fetch medicines");
@@ -20,5 +21,9 @@ export const addMedicine = async (medicineData) => {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.error || "Failed to add medicine");
   }
-  return response.json();
+  if (response.status === 204) {
+    return null;
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 };

@@ -82,6 +82,21 @@ describe("MedicineManagement", () => {
   });
 
   test("submits add medicine form successfully", async () => {
+    getAllMedicines
+      .mockResolvedValueOnce(mockMedicines)
+      .mockResolvedValueOnce([
+        ...mockMedicines,
+        {
+          medicineId: 3,
+          medicineCode: "MED3",
+          tradeName: "Ibuprofen",
+          genericName: "Ibuprofen",
+          unitSellingPrice: 15.0,
+          unitPurchasePrice: 12.0,
+        },
+      ]);
+    addMedicine.mockResolvedValue({ medicineCode: "MED3" });
+
     render(<MedicineManagement />);
 
     await waitFor(() => {
@@ -130,7 +145,9 @@ describe("MedicineManagement", () => {
       });
     });
 
-    expect(screen.getByText("Medicine Added Successfully!")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Medicine Added Successfully!")).toBeInTheDocument();
+    });
   });
 
   test("handles add medicine error", async () => {
