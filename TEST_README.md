@@ -1,17 +1,80 @@
 # Test Cases for Pharmacy Management System
 
-This document outlines the comprehensive test cases written for the Pharmacy Management System project, covering Unit Testing, Automated UI Testing, and API Testing.
+This document outlines the comprehensive tests implemented for the Pharmacy Management System across backend unit tests, frontend unit/UI tests, and API tests.
 
 ## 1. JUnit (Unit Testing) - Backend Java
 
-### MedicineServiceTest
-- **getAllMedicines()**: Tests fetching all medicines from the database
-- **addMedicine()**: Tests adding a new medicine with inventory and batch creation
+### Backend Service Test Files
+- `AuthServiceTest`: login success, invalid password, role mismatch, blank role behavior, user-not-found, exception wrapping
+- `MedicineServiceTest`: list medicines, add medicine success path, batch creation rules, insert failure path, rollback behavior
+- `SalesServiceTest`: FEFO allocation success, insufficient stock rollback, batch update failure rollback
+- `PurchaseServiceTest`: purchase success, inventory fallback create, vendor validation rollback, expiry validation rollback
+- `ReorderServiceTest`: reorder report mapping, unknown medicine fallback, exception wrapping
+- `ExpiredBatchDiscardServiceTest`: discard success report totals, discard failure rollback
+- `ProfitReportServiceTest`: aggregate profit totals, medicine profit report success, missing medicine failure
 
-### AuthServiceTest
-- **login()**: Tests successful login with valid credentials
-- **login()**: Tests login failure with invalid password
-- **login()**: Tests login failure when user not found
+### Current Backend Unit Test Count
+- 7 test classes
+- 25 passing tests
+
+### Backend Detailed Test Review
+
+#### `AuthServiceTest` (6 tests)
+- Validates authentication success with matching username/password/role.
+- Confirms password is removed (`null`) before user object is returned.
+- Verifies login denial for invalid password.
+- Verifies login denial for role mismatch and allows blank role input.
+- Verifies `null` result when user does not exist.
+- Verifies DAO/connection exceptions are wrapped as service-level runtime errors.
+
+#### `MedicineServiceTest` (6 tests)
+- Verifies medicine listing flow (`getAllMedicines`) returns DAO data.
+- Validates full add flow: medicine insert, inventory creation, initial batch creation.
+- Validates batch creation guard conditions:
+  - no batch when initial quantity is `0`
+  - no batch when vendor id is invalid (`<= 0`)
+- Verifies behavior when medicine insert returns `false`.
+- Verifies transactional rollback and wrapped exception when DAO throws.
+
+#### `SalesServiceTest` (3 tests)
+- Verifies successful sale end-to-end with FEFO batch allocation and transaction commit.
+- Validates insufficient stock path triggers rollback.
+- Validates batch reduction failure path triggers rollback.
+- Confirms batch consumption and aggregate inventory deduction behavior.
+
+#### `PurchaseServiceTest` (3 tests)
+- Verifies successful purchase: vendor/medicine/mapping validation, header + details + batch insert, commit.
+- Verifies inventory fallback path when `addQuantity` fails (creates inventory record).
+- Validates rollback for vendor-not-found and invalid-expiry validation failures.
+
+#### `ReorderServiceTest` (2 tests)
+- Verifies reorder report generation from low-stock inventory records.
+- Confirms medicine code fallback format (`UNKNOWN-{medicineId}`) when medicine is missing.
+- Verifies recommended reorder quantity calculation (`threshold - current`).
+- Verifies exception wrapping for connection/service failure path.
+
+#### `ExpiredBatchDiscardServiceTest` (2 tests)
+- Verifies successful expired-batch discard flow:
+  - inventory reduction
+  - batch quantity discard
+  - report item generation
+  - total discarded batches/units aggregation
+- Verifies rollback and wrapped exception when batch discard update fails.
+
+#### `ProfitReportServiceTest` (3 tests)
+- Verifies full profit report totals (sales revenue, purchase cost, net profit).
+- Verifies medicine and vendor breakdown DTO generation.
+- Verifies medicine-specific profit report totals and profit margin inputs.
+- Verifies missing medicine path throws wrapped service exception.
+
+### Backend Test Design Notes
+- Tests run as **unit tests with DAO stubs**, not DB integration tests.
+- Service constructors were updated for dependency injection to avoid static/constructor mocking fragility.
+- Transaction paths are explicitly tested for both commit and rollback scenarios.
+- Coverage is intentionally balanced between:
+  - happy paths
+  - business rule validation failures
+  - data mutation/transaction integrity failures
 
 ## 2. Selenium (Automated UI Testing) - Frontend
 
@@ -83,10 +146,24 @@ npm test selenium/UITests.test.js
 ## Running All Tests
 
 ### Backend Unit Tests
-```bash
-cd backend
-javac -cp "lib/*" -d out src/test/java/com/msa/*.java
-java -cp "out:lib/*" org.junit.runner.JUnitCore com.msa.MedicineServiceTest com.msa.AuthServiceTest
+```powershell
+# from project root
+powershell -ExecutionPolicy Bypass -File .\backend\run-tests.ps1
+```
+
+### Run One Backend Test Class
+```powershell
+# example: run only AuthService tests
+$cp = "backend/lib/junit-4.13.2.jar;backend/lib/hamcrest-core-1.3.jar"
+javac -cp $cp -d "backend/out" backend/src/com/msa/model/*.java backend/src/com/msa/dto/*.java backend/src/com/msa/dao/*.java backend/src/com/msa/db/*.java backend/src/com/msa/service/*.java backend/src/test/java/com/msa/*Test.java
+java -cp "backend/out;$cp" org.junit.runner.JUnitCore com.msa.AuthServiceTest
+```
+
+### Backend Unit Tests (Manual Command)
+```powershell
+$cp = "backend/lib/junit-4.13.2.jar;backend/lib/hamcrest-core-1.3.jar"
+javac -cp $cp -d "backend/out" backend/src/com/msa/model/*.java backend/src/com/msa/dto/*.java backend/src/com/msa/dao/*.java backend/src/com/msa/db/*.java backend/src/com/msa/service/*.java backend/src/test/java/com/msa/*Test.java
+java -cp "backend/out;$cp" org.junit.runner.JUnitCore com.msa.AuthServiceTest com.msa.MedicineServiceTest com.msa.SalesServiceTest com.msa.PurchaseServiceTest com.msa.ReorderServiceTest com.msa.ExpiredBatchDiscardServiceTest com.msa.ProfitReportServiceTest
 ```
 
 ### Frontend Unit Tests
@@ -105,9 +182,9 @@ npm run test:selenium
 Import collection and run in Postman with backend server running.
 
 ## Test Coverage Summary
-- **JUnit**: Backend service layer unit tests
+- **JUnit**: Backend service layer unit tests (Auth, Medicine, Sales, Purchase, Reorder, ExpiredBatchDiscard, ProfitReport)
 - **Selenium**: End-to-end UI automation tests
 - **Postman**: API endpoint testing with automated assertions
 - **Jest**: Frontend component and service unit tests
 
-This comprehensive test suite covers all major testing methodologies required for the project.
+This suite now includes comprehensive backend service testing with transaction and failure-path coverage in addition to UI/API coverage.
