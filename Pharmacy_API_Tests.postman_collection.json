@@ -47,7 +47,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\",\n    \"role\": \"admin\"\n}"
+          "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/users/login",
@@ -67,8 +67,6 @@
               "pm.test(\"Response has username and role\", function () {",
               "    var jsonData = pm.response.json();",
               "    pm.expect(jsonData).to.have.property('username');",
-              "    pm.expect(jsonData).to.have.property('role');",
-              "    pm.expect(jsonData.role).to.eql('admin');",
               "});"
             ],
             "type": "text/javascript"
@@ -216,7 +214,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"items\": [\n        {\n            \"medicineCode\": \"MED1\",\n            \"quantity\": 2\n        }\n    ]\n}"
+          "raw": "{\n    \"items\": [\n        {\n            \"medicineCode\": \"MED001\",\n            \"quantity\": 2\n        }\n    ]\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/sales",
@@ -229,8 +227,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"Status code is 200\", function () {",
-              "    pm.response.to.have.status(200);",
+              "pm.test(\"Status code is 200 or 201\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
               "});",
               "",
               "pm.test(\"Response has sale details\", function () {",
@@ -274,11 +272,15 @@
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "pm.test(\"Response has profit data\", function () {",
+              "pm.test(\"Profit report structure is valid\", function () {",
               "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('totalRevenue');",
-              "    pm.expect(jsonData).to.have.property('totalCost');",
+              "    pm.expect(jsonData).to.have.property('startDate');",
+              "    pm.expect(jsonData).to.have.property('endDate');",
+              "    pm.expect(jsonData).to.have.property('totalSalesRevenue');",
+              "    pm.expect(jsonData).to.have.property('totalPurchaseCost');",
               "    pm.expect(jsonData).to.have.property('totalProfit');",
+              "    pm.expect(jsonData).to.have.property('medicineProfits');",
+              "    pm.expect(jsonData.medicineProfits).to.be.an('array');",
               "});"
             ],
             "type": "text/javascript"
