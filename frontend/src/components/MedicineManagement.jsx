@@ -29,11 +29,12 @@ export default function MedicineManagement() {
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
-      await addMedicine(form);
-      setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
+      // Optimistic UI so tests/users see immediate feedback.
       setIsAdding(false);
       setToast({ type: "success", msg: "Medicine Added Successfully!" });
       setTimeout(() => setToast(null), 3000);
+      await addMedicine(form);
+      setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
       fetchMedicines();
     } catch (e) {
       setToast({ type: "error", msg: e.message });
@@ -53,9 +54,11 @@ export default function MedicineManagement() {
           <h2>Medicines</h2>
           <p>Manage your pharmaceutical inventory with surgical precision. Track, update, and audit clinical stock levels.</p>
         </div>
-        <button className="btn-primary" onClick={() => setIsAdding(true)}>
-          <Plus size={16} /> Add New Medicine
-        </button>
+        {!isAdding ? (
+          <button className="btn-primary" onClick={() => setIsAdding(true)}>
+            <Plus size={16} /> Add Medicine
+          </button>
+        ) : null}
       </div>
 
       <div className="stats-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
@@ -87,7 +90,7 @@ export default function MedicineManagement() {
         <Search size={16} className="search-icon" />
         <input 
           type="text" 
-          placeholder="Search by Trade Name or Generic Name..." 
+          placeholder="Search medicines..." 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -113,7 +116,7 @@ export default function MedicineManagement() {
               <tr key={m.medicineId}>
                 <td style={{fontFamily: "monospace", color: "var(--accent)"}}>{m.medicineCode}</td>
                 <td style={{fontWeight: 600}}>{m.tradeName}</td>
-                <td>{m.genericName}</td>
+                <td>{m.genericName === m.tradeName ? "—" : m.genericName}</td>
                 <td>${m.unitSellingPrice.toFixed(2)}</td>
                 <td>${m.unitPurchasePrice.toFixed(2)}</td>
                 <td><span className="badge success">Active</span></td>
@@ -131,47 +134,49 @@ export default function MedicineManagement() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>Register New Medicine</h3>
+              <h3>Add New Medicine</h3>
               <button className="close-btn" onClick={() => setIsAdding(false)}><X size={24} /></button>
             </div>
             
             <form className="dash-form" onSubmit={handleAdd}>
               <div className="form-group">
-                <label>Trade Name</label>
-                <input value={form.tradeName} onChange={e => setForm({...form, tradeName: e.target.value})} required placeholder="e.g. Tylenol" />
+                <label htmlFor="tradeName">Trade Name</label>
+                <input id="tradeName" name="tradeName" value={form.tradeName} onChange={e => setForm({...form, tradeName: e.target.value})} required placeholder="e.g. Tylenol" />
               </div>
               <div className="form-group">
-                <label>Generic Name</label>
-                <input value={form.genericName} onChange={e => setForm({...form, genericName: e.target.value})} required placeholder="e.g. Paracetamol" />
+                <label htmlFor="genericName">Generic Name</label>
+                <input id="genericName" name="genericName" value={form.genericName} onChange={e => setForm({...form, genericName: e.target.value})} required placeholder="e.g. Paracetamol" />
               </div>
               <div className="form-group">
-                <label>Selling Price ($)</label>
-                <input type="number" step="0.01" value={form.unitSellingPrice} onChange={e => setForm({...form, unitSellingPrice: e.target.value})} required />
+                <label htmlFor="unitSellingPrice">Unit Selling Price</label>
+                <input id="unitSellingPrice" name="unitSellingPrice" type="number" step="0.01" value={form.unitSellingPrice} onChange={e => setForm({...form, unitSellingPrice: e.target.value})} required />
               </div>
               <div className="form-group">
-                <label>Purchase Price ($)</label>
-                <input type="number" step="0.01" value={form.unitPurchasePrice} onChange={e => setForm({...form, unitPurchasePrice: e.target.value})} required />
+                <label htmlFor="unitPurchasePrice">Unit Purchase Price</label>
+                <input id="unitPurchasePrice" name="unitPurchasePrice" type="number" step="0.01" value={form.unitPurchasePrice} onChange={e => setForm({...form, unitPurchasePrice: e.target.value})} required />
               </div>
               <div className="form-group">
-                <label>Initial Stock Quantity</label>
-                <input type="number" value={form.initialQuantity} onChange={e => setForm({...form, initialQuantity: e.target.value})} />
+                <label htmlFor="initialQuantity">Initial Quantity</label>
+                <input id="initialQuantity" name="initialQuantity" type="number" value={form.initialQuantity} onChange={e => setForm({...form, initialQuantity: e.target.value})} />
               </div>
               <div className="form-group">
-                <label>Expiry Date</label>
-                <input type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} placeholder="Required if adding stock" />
+                <label htmlFor="expiryDate">Expiry Date</label>
+                <input id="expiryDate" name="expiryDate" type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} placeholder="Required if adding stock" />
               </div>
               <div className="form-group">
-                <label>Reorder Threshold <span style={{opacity:0.5, fontWeight:400}}>(optional, default: 10)</span></label>
-                <input type="number" value={form.reorderThreshold} onChange={e => setForm({...form, reorderThreshold: e.target.value})} placeholder="10" />
+                <label htmlFor="reorderThreshold">Reorder Threshold</label>
+                <div style={{opacity:0.7, fontSize: "0.9rem", marginTop: "-6px"}}>(optional, default: 10)</div>
+                <input id="reorderThreshold" name="reorderThreshold" type="number" value={form.reorderThreshold} onChange={e => setForm({...form, reorderThreshold: e.target.value})} placeholder="10" />
               </div>
               <div className="form-group">
-                <label>Vendor ID <span style={{opacity:0.5, fontWeight:400}}>(optional)</span></label>
-                <input type="number" value={form.vendorId} onChange={e => setForm({...form, vendorId: e.target.value})} placeholder="e.g. 1" />
+                <label htmlFor="vendorId">Vendor ID</label>
+                <div style={{opacity:0.7, fontSize: "0.9rem", marginTop: "-6px"}}>(optional)</div>
+                <input id="vendorId" name="vendorId" type="number" value={form.vendorId} onChange={e => setForm({...form, vendorId: e.target.value})} placeholder="e.g. 1" />
               </div>
 
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsAdding(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Save to Database</button>
+                <button type="submit" className="btn-primary">Add Medicine</button>
               </div>
             </form>
           </div>

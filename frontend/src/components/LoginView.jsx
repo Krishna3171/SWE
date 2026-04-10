@@ -68,7 +68,7 @@ function LoginView({ onLogin, errorMessage, isSubmitting }) {
 
           {errorMessage ? <p className="error-text">{errorMessage}</p> : null}
 
-          <button type="submit" disabled={isSubmitting}>
+          <button type="submit" disabled={isSubmitting} aria-label="Sign In">
             {isSubmitting ? "Signing In..." : "Sign In"}
           </button>
         </form>

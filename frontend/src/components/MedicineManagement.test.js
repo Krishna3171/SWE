@@ -35,6 +35,8 @@ describe("MedicineManagement", () => {
   });
 
   test("renders loading state initially", () => {
+    // Keep fetch pending in this test so no async state update fires after assertion.
+    getAllMedicines.mockImplementationOnce(() => new Promise(() => {}));
     render(<MedicineManagement />);
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });

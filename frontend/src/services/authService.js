@@ -39,9 +39,7 @@ export const authenticateUser = async (credentials) => {
     }
 
     if (response.status === 401) {
-      throw new Error(
-        backendError || "Invalid credentials for the selected role.",
-      );
+      throw new Error("Invalid credentials for the selected role.");
     }
 
     throw new Error(
@@ -49,9 +47,11 @@ export const authenticateUser = async (credentials) => {
         "Login service is unavailable. Ensure backend server is running and reachable.",
     );
   } catch (error) {
-    if (error instanceof TypeError) {
+    const message = typeof error?.message === "string" ? error.message : "";
+    const looksLikeNetworkError = message.toLowerCase().includes("network");
+    if (error instanceof TypeError || looksLikeNetworkError) {
       throw new Error(
-        "Cannot connect to backend. Start the backend server and verify the login API URL.",
+        "Login service is unavailable. Ensure backend server is running and reachable.",
       );
     }
 
