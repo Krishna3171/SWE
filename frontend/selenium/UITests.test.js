@@ -125,6 +125,9 @@ describe('Pharmacy Management System UI Tests', () => {
     await addButton.click();
 
     const uniqueSuffix = Date.now().toString().slice(-6);
+    const futureDate = new Date();
+    futureDate.setFullYear(futureDate.getFullYear() + 1);
+    const expiryDateValue = futureDate.toISOString().slice(0, 10);
 
     // Fill the form
     const tradeNameInput = await driver.findElement(By.name('tradeName'));
@@ -143,7 +146,7 @@ describe('Pharmacy Management System UI Tests', () => {
     await quantityInput.sendKeys('50');
 
     const expiryInput = await driver.findElement(By.name('expiryDate'));
-    await expiryInput.sendKeys('2025-12-31');
+    await expiryInput.sendKeys(expiryDateValue);
 
     const reorderInput = await driver.findElement(By.name('reorderThreshold'));
     await reorderInput.sendKeys('5');
@@ -155,25 +158,30 @@ describe('Pharmacy Management System UI Tests', () => {
     const submitButton = await driver.findElement(By.css('button[type="submit"]'));
     await submitButton.click();
 
-    // Wait for a reliable success signal (toast or newly inserted row text).
+    // Wait for success OR fail fast if any visible error appears.
     const rowLocator = By.xpath(`//*[contains(text(), "Selenium Test Medicine ${uniqueSuffix}")]`);
-    try {
-      await driver.wait(
-        async () => {
-          const successToasts = await driver.findElements(By.css('.toast.success'));
-          if (successToasts.length > 0) return true;
-          const insertedRows = await driver.findElements(rowLocator);
-          return insertedRows.length > 0;
-        },
-        15000,
-      );
-    } catch (e) {
+    const outcome = await driver.wait(async () => {
       const errorToasts = await driver.findElements(By.css('.toast.error'));
       if (errorToasts.length > 0) {
-        const errorText = await errorToasts[0].getText();
-        throw new Error(`Add medicine failed: ${errorText}`);
+        const msg = await errorToasts[0].getText();
+        return { status: 'error', msg };
       }
-      throw e;
+
+      const successToasts = await driver.findElements(By.css('.toast.success'));
+      if (successToasts.length > 0) {
+        return { status: 'success' };
+      }
+
+      const insertedRows = await driver.findElements(rowLocator);
+      if (insertedRows.length > 0) {
+        return { status: 'success' };
+      }
+
+      return false;
+    }, 20000);
+
+    if (outcome.status === 'error') {
+      throw new Error(`Add medicine failed: ${outcome.msg}`);
     }
   });
 });

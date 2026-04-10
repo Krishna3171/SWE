@@ -46,14 +46,18 @@ public class MedicineService {
                     inventoryDAO.createInventoryForMedicine(
                             conn, medicine.getMedicineId(), initialQuantity, reorderThreshold);
 
-                    // Create a real Batch so FEFO can function on these units
-                    if (initialQuantity > 0 && expiryDate != null && !expiryDate.isEmpty()) {
+                    // Create an initial batch only when vendor is explicitly provided.
+                    // Some deployments enforce vendor foreign key constraints.
+                    if (initialQuantity > 0
+                            && expiryDate != null
+                            && !expiryDate.isEmpty()
+                            && vendorId > 0) {
                         Batch batch = new Batch();
                         batch.setMedicineId(medicine.getMedicineId());
                         batch.setBatchNumber("INIT-" + medicine.getMedicineCode());
                         batch.setExpiryDate(LocalDate.parse(expiryDate));
                         batch.setQuantity(initialQuantity);
-                        batch.setVendorId(vendorId > 0 ? vendorId : 0);
+                        batch.setVendorId(vendorId);
                         batchDAO.insertBatch(conn, batch);
                     }
                 }

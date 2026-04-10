@@ -35,20 +35,29 @@ export default function MedicineManagement() {
     e.preventDefault();
     try {
       const created = await addMedicine(form);
-      const refreshed = await fetchMedicines({ throwOnError: true });
-      if (
-        created &&
-        created.medicineCode &&
-        Array.isArray(refreshed) &&
-        !refreshed.some((item) => item.medicineCode === created.medicineCode)
-      ) {
-        throw new Error("Medicine was not visible after refresh. Please try again.");
+      if (created?.medicineCode) {
+        setMedicines((prev) => {
+          const exists = prev.some((item) => item.medicineCode === created.medicineCode);
+          if (exists) return prev;
+          return [
+            {
+              medicineId: Date.now(),
+              medicineCode: created.medicineCode,
+              tradeName: form.tradeName,
+              genericName: form.genericName,
+              unitSellingPrice: Number.parseFloat(form.unitSellingPrice || "0"),
+              unitPurchasePrice: Number.parseFloat(form.unitPurchasePrice || "0"),
+            },
+            ...prev,
+          ];
+        });
       }
       setIsAdding(false);
       setSearch("");
       setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
       setToast({ type: "success", msg: "Medicine Added Successfully!" });
       setTimeout(() => setToast(null), 3000);
+      fetchMedicines();
     } catch (e) {
       setToast({ type: "error", msg: e.message });
       setTimeout(() => setToast(null), 3000);

@@ -80,20 +80,22 @@ public class MedicineDAO {
             // 4️⃣ Fetch generated medicine_id
             if (rowsInserted > 0) {
                 var rs = ps.getGeneratedKeys();
-                if (rs.next()) {
-                    int generatedId = rs.getInt(1);
-                    medicine.setMedicineId(generatedId);
+                if (!rs.next()) {
+                    return false;
+                }
 
-                    String finalMedicineCode = "MED" + generatedId;
-                    medicine.setMedicineCode(finalMedicineCode);
+                int generatedId = rs.getInt(1);
+                medicine.setMedicineId(generatedId);
 
-                    String updateCodeSql = "UPDATE Medicine SET medicine_code = ? WHERE medicine_id = ?";
-                    try (PreparedStatement updatePs = conn.prepareStatement(updateCodeSql)) {
-                        updatePs.setString(1, finalMedicineCode);
-                        updatePs.setInt(2, generatedId);
-                        if (updatePs.executeUpdate() == 0) {
-                            return false;
-                        }
+                String finalMedicineCode = "MED" + generatedId;
+                medicine.setMedicineCode(finalMedicineCode);
+
+                String updateCodeSql = "UPDATE Medicine SET medicine_code = ? WHERE medicine_id = ?";
+                try (PreparedStatement updatePs = conn.prepareStatement(updateCodeSql)) {
+                    updatePs.setString(1, finalMedicineCode);
+                    updatePs.setInt(2, generatedId);
+                    if (updatePs.executeUpdate() == 0) {
+                        return false;
                     }
                 }
                 return true;
