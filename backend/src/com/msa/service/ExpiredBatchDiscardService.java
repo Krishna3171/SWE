@@ -10,19 +10,39 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class ExpiredBatchDiscardService {
 
-    private final BatchDAO batchDAO = new BatchDAO();
-    private final InventoryDAO inventoryDAO = new InventoryDAO();
-    private final MedicineDAO medicineDAO = new MedicineDAO();
+    private final BatchDAO batchDAO;
+    private final InventoryDAO inventoryDAO;
+    private final MedicineDAO medicineDAO;
+    private final Supplier<Connection> connectionProvider;
+
+    public ExpiredBatchDiscardService() {
+        this(new BatchDAO(), new InventoryDAO(), new MedicineDAO(), () -> {
+            try {
+                return DBConnection.getConnection();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get database connection", e);
+            }
+        });
+    }
+
+    public ExpiredBatchDiscardService(BatchDAO batchDAO, InventoryDAO inventoryDAO,
+                                      MedicineDAO medicineDAO, Supplier<Connection> connectionProvider) {
+        this.batchDAO = batchDAO;
+        this.inventoryDAO = inventoryDAO;
+        this.medicineDAO = medicineDAO;
+        this.connectionProvider = connectionProvider;
+    }
 
     public ExpiredBatchReport discardExpiredBatches() {
 
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = connectionProvider.get();
             conn.setAutoCommit(false);
 
             List<Batch> expiredBatches = batchDAO.getExpiredBatches(conn);

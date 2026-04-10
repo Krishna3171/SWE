@@ -12,14 +12,36 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class SalesService {
 
-        private final MedicineDAO medicineDAO = new MedicineDAO();
-        private final BatchDAO batchDAO = new BatchDAO();
-        private final InventoryDAO inventoryDAO = new InventoryDAO();
-        private final SalesDAO salesDAO = new SalesDAO();
-        private final SalesDetailsDAO salesDetailsDAO = new SalesDetailsDAO();
+        private final MedicineDAO medicineDAO;
+        private final BatchDAO batchDAO;
+        private final InventoryDAO inventoryDAO;
+        private final SalesDAO salesDAO;
+        private final SalesDetailsDAO salesDetailsDAO;
+        private final Supplier<Connection> connectionProvider;
+
+        public SalesService() {
+                this(new MedicineDAO(), new BatchDAO(), new InventoryDAO(), new SalesDAO(), new SalesDetailsDAO(), () -> {
+                        try {
+                                return DBConnection.getConnection();
+                        } catch (Exception e) {
+                                throw new RuntimeException("Failed to get database connection", e);
+                        }
+                });
+        }
+
+        public SalesService(MedicineDAO medicineDAO, BatchDAO batchDAO, InventoryDAO inventoryDAO,
+                        SalesDAO salesDAO, SalesDetailsDAO salesDetailsDAO, Supplier<Connection> connectionProvider) {
+                this.medicineDAO = medicineDAO;
+                this.batchDAO = batchDAO;
+                this.inventoryDAO = inventoryDAO;
+                this.salesDAO = salesDAO;
+                this.salesDetailsDAO = salesDetailsDAO;
+                this.connectionProvider = connectionProvider;
+        }
 
         // ==========================
         // PUBLIC ENTRY POINT
@@ -29,7 +51,7 @@ public class SalesService {
                 Connection conn = null;
 
                 try {
-                        conn = DBConnection.getConnection();
+                        conn = connectionProvider.get();
                         conn.setAutoCommit(false); // 🔴 TRANSACTION START
 
                         List<SaleLinePlan> salePlan = new ArrayList<>();

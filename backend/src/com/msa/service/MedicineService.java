@@ -10,21 +10,35 @@ import com.msa.model.Medicine;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class MedicineService {
 
     private final MedicineDAO medicineDAO;
     private final InventoryDAO inventoryDAO;
     private final BatchDAO batchDAO;
+    private final Supplier<Connection> connectionProvider;
 
     public MedicineService() {
-        this.medicineDAO = new MedicineDAO();
-        this.inventoryDAO = new InventoryDAO();
-        this.batchDAO = new BatchDAO();
+        this(new MedicineDAO(), new InventoryDAO(), new BatchDAO(), () -> {
+            try {
+                return DBConnection.getConnection();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to get database connection", e);
+            }
+        });
+    }
+
+    public MedicineService(MedicineDAO medicineDAO, InventoryDAO inventoryDAO,
+                           BatchDAO batchDAO, Supplier<Connection> connectionProvider) {
+        this.medicineDAO = medicineDAO;
+        this.inventoryDAO = inventoryDAO;
+        this.batchDAO = batchDAO;
+        this.connectionProvider = connectionProvider;
     }
 
     public List<Medicine> getAllMedicines() {
-        try (Connection conn = DBConnection.getConnection()) {
+        try (Connection conn = connectionProvider.get()) {
             return medicineDAO.getAllMedicines(conn);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get medicines", e);
@@ -38,7 +52,7 @@ public class MedicineService {
      */
     public boolean addMedicine(Medicine medicine, int initialQuantity,
                                int reorderThreshold, String expiryDate, int vendorId) {
-        try (Connection conn = DBConnection.getConnection()) {
+        try (Connection conn = connectionProvider.get()) {
             conn.setAutoCommit(false);
             try {
                 boolean inserted = medicineDAO.insertMedicine(conn, medicine);

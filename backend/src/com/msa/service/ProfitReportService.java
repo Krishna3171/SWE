@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * ProfitReportService
@@ -19,12 +20,37 @@ import java.util.List;
  */
 public class ProfitReportService {
 
-    private final SalesDAO salesDAO = new SalesDAO();
-    private final PurchaseDAO purchaseDAO = new PurchaseDAO();
-    private final PurchaseDetailsDAO purchaseDetailsDAO = new PurchaseDetailsDAO();
-    private final SalesDetailsDAO salesDetailsDAO = new SalesDetailsDAO();
-    private final MedicineDAO medicineDAO = new MedicineDAO();
-    private final VendorDAO vendorDAO = new VendorDAO();
+    private final SalesDAO salesDAO;
+    private final PurchaseDAO purchaseDAO;
+    private final PurchaseDetailsDAO purchaseDetailsDAO;
+    private final SalesDetailsDAO salesDetailsDAO;
+    private final MedicineDAO medicineDAO;
+    private final VendorDAO vendorDAO;
+    private final Supplier<Connection> connectionProvider;
+
+    public ProfitReportService() {
+        this(new SalesDAO(), new PurchaseDAO(), new PurchaseDetailsDAO(), new SalesDetailsDAO(),
+                new MedicineDAO(), new VendorDAO(), () -> {
+                    try {
+                        return DBConnection.getConnection();
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to get database connection", e);
+                    }
+                });
+    }
+
+    public ProfitReportService(SalesDAO salesDAO, PurchaseDAO purchaseDAO,
+                               PurchaseDetailsDAO purchaseDetailsDAO, SalesDetailsDAO salesDetailsDAO,
+                               MedicineDAO medicineDAO, VendorDAO vendorDAO,
+                               Supplier<Connection> connectionProvider) {
+        this.salesDAO = salesDAO;
+        this.purchaseDAO = purchaseDAO;
+        this.purchaseDetailsDAO = purchaseDetailsDAO;
+        this.salesDetailsDAO = salesDetailsDAO;
+        this.medicineDAO = medicineDAO;
+        this.vendorDAO = vendorDAO;
+        this.connectionProvider = connectionProvider;
+    }
 
     // ==========================
     // PUBLIC ENTRY POINTS
@@ -37,7 +63,7 @@ public class ProfitReportService {
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = connectionProvider.get();
             if (conn == null) {
                 throw new RuntimeException("Database connection unavailable");
             }
@@ -134,7 +160,7 @@ public class ProfitReportService {
         Connection conn = null;
 
         try {
-            conn = DBConnection.getConnection();
+            conn = connectionProvider.get();
             if (conn == null) {
                 throw new RuntimeException("Database connection unavailable");
             }

@@ -11,16 +11,43 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class PurchaseService {
 
-        private final VendorDAO vendorDAO = new VendorDAO();
-        private final MedicineDAO medicineDAO = new MedicineDAO();
-        private final VendorMedicineDAO vendorMedicineDAO = new VendorMedicineDAO();
-        private final PurchaseDAO purchaseDAO = new PurchaseDAO();
-        private final PurchaseDetailsDAO purchaseDetailsDAO = new PurchaseDetailsDAO();
-        private final BatchDAO batchDAO = new BatchDAO();
-        private final InventoryDAO inventoryDAO = new InventoryDAO();
+        private final VendorDAO vendorDAO;
+        private final MedicineDAO medicineDAO;
+        private final VendorMedicineDAO vendorMedicineDAO;
+        private final PurchaseDAO purchaseDAO;
+        private final PurchaseDetailsDAO purchaseDetailsDAO;
+        private final BatchDAO batchDAO;
+        private final InventoryDAO inventoryDAO;
+        private final Supplier<Connection> connectionProvider;
+
+        public PurchaseService() {
+                this(new VendorDAO(), new MedicineDAO(), new VendorMedicineDAO(),
+                                new PurchaseDAO(), new PurchaseDetailsDAO(), new BatchDAO(), new InventoryDAO(), () -> {
+                                        try {
+                                                return DBConnection.getConnection();
+                                        } catch (Exception e) {
+                                                throw new RuntimeException("Failed to get database connection", e);
+                                        }
+                                });
+        }
+
+        public PurchaseService(VendorDAO vendorDAO, MedicineDAO medicineDAO,
+                        VendorMedicineDAO vendorMedicineDAO, PurchaseDAO purchaseDAO,
+                        PurchaseDetailsDAO purchaseDetailsDAO, BatchDAO batchDAO,
+                        InventoryDAO inventoryDAO, Supplier<Connection> connectionProvider) {
+                this.vendorDAO = vendorDAO;
+                this.medicineDAO = medicineDAO;
+                this.vendorMedicineDAO = vendorMedicineDAO;
+                this.purchaseDAO = purchaseDAO;
+                this.purchaseDetailsDAO = purchaseDetailsDAO;
+                this.batchDAO = batchDAO;
+                this.inventoryDAO = inventoryDAO;
+                this.connectionProvider = connectionProvider;
+        }
 
         // ==========================
         // PUBLIC ENTRY POINT
@@ -30,7 +57,7 @@ public class PurchaseService {
                 Connection conn = null;
 
                 try {
-                        conn = DBConnection.getConnection();
+                        conn = connectionProvider.get();
                         conn.setAutoCommit(false); // 🔴 TRANSACTION START
 
                         // ==========================

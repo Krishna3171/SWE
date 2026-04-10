@@ -8,16 +8,36 @@ import com.msa.model.*;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class ReorderService {
 
-        private final InventoryDAO inventoryDAO = new InventoryDAO();
-        private final MedicineDAO medicineDAO = new MedicineDAO();
-        private final VendorMedicineDAO vendorMedicineDAO = new VendorMedicineDAO();
+        private final InventoryDAO inventoryDAO;
+        private final MedicineDAO medicineDAO;
+        private final VendorMedicineDAO vendorMedicineDAO;
+        private final Supplier<Connection> connectionProvider;
+
+        public ReorderService() {
+                this(new InventoryDAO(), new MedicineDAO(), new VendorMedicineDAO(), () -> {
+                        try {
+                                return DBConnection.getConnection();
+                        } catch (Exception e) {
+                                throw new RuntimeException("Failed to get database connection", e);
+                        }
+                });
+        }
+
+        public ReorderService(InventoryDAO inventoryDAO, MedicineDAO medicineDAO,
+                        VendorMedicineDAO vendorMedicineDAO, Supplier<Connection> connectionProvider) {
+                this.inventoryDAO = inventoryDAO;
+                this.medicineDAO = medicineDAO;
+                this.vendorMedicineDAO = vendorMedicineDAO;
+                this.connectionProvider = connectionProvider;
+        }
 
         public ReorderReport generateReorderReport() {
 
-                try (Connection conn = DBConnection.getConnection()) {
+                try (Connection conn = connectionProvider.get()) {
 
                         // 1️⃣ Fetch low stock medicines
                         List<Inventory> lowStockList = inventoryDAO.getLowStockMedicines(conn);
