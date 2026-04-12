@@ -33,8 +33,10 @@ export default function MedicineManagement() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    console.log("Submitting medicine form:", form);
     try {
       const created = await addMedicine(form);
+      console.log("Add medicine response:", created);
       if (created?.medicineCode) {
         setMedicines((prev) => {
           const exists = prev.some((item) => item.medicineCode === created.medicineCode);
@@ -51,14 +53,17 @@ export default function MedicineManagement() {
             ...prev,
           ];
         });
+        setIsAdding(false);
+        setSearch("");
+        setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
+        setToast({ type: "success", msg: "Medicine Added Successfully!" });
+        setTimeout(() => setToast(null), 3000);
+        fetchMedicines();
+      } else {
+        throw new Error("Failed to add medicine: No verification code received");
       }
-      setIsAdding(false);
-      setSearch("");
-      setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
-      setToast({ type: "success", msg: "Medicine Added Successfully!" });
-      setTimeout(() => setToast(null), 3000);
-      fetchMedicines();
     } catch (e) {
+      console.error("Add medicine error:", e);
       setToast({ type: "error", msg: e.message });
       setTimeout(() => setToast(null), 3000);
     }
@@ -77,7 +82,7 @@ export default function MedicineManagement() {
           <p>Manage your pharmaceutical inventory with surgical precision. Track, update, and audit clinical stock levels.</p>
         </div>
         {!isAdding ? (
-          <button className="btn-primary" onClick={() => setIsAdding(true)}>
+          <button className="btn-primary" onClick={() => setIsAdding(true)} data-testid="add-medicine-header-btn">
             <Plus size={16} /> Add Medicine
           </button>
         ) : null}
@@ -163,7 +168,7 @@ export default function MedicineManagement() {
             <form className="dash-form" onSubmit={handleAdd}>
               <div className="form-group">
                 <label htmlFor="tradeName">Trade Name</label>
-                <input id="tradeName" name="tradeName" value={form.tradeName} onChange={e => setForm({...form, tradeName: e.target.value})} required placeholder="e.g. Tylenol" />
+                <input id="tradeName" name="tradeName" data-testid="trade-name-input" value={form.tradeName} onChange={e => setForm({...form, tradeName: e.target.value})} required placeholder="e.g. Tylenol" />
               </div>
               <div className="form-group">
                 <label htmlFor="genericName">Generic Name</label>
@@ -198,7 +203,7 @@ export default function MedicineManagement() {
 
               <div className="modal-actions">
                 <button type="button" className="btn-secondary" onClick={() => setIsAdding(false)}>Cancel</button>
-                <button type="submit" className="btn-primary">Add Medicine</button>
+                <button type="submit" className="btn-primary" data-testid="submit-medicine-btn">Add Medicine</button>
               </div>
             </form>
           </div>
