@@ -84,6 +84,12 @@ This document outlines the comprehensive tests implemented for the Pharmacy Mana
 - **should show error for invalid login**: Tests error handling for invalid credentials
 - **should navigate to medicine management**: Tests navigation to medicine management page
 - **should add new medicine**: Tests the complete flow of adding a new medicine
+- **should navigate to inventory management**: Tests navigation and search UI on the Inventory page
+- **should navigate to vendor management**: Tests navigation and rendering of vendor management
+- **should navigate to point of sale (Sales/POS)**: Tests navigation to the POS terminal
+- **should open add vendor modal**: Tests opening the vendor registration modal
+- **should verify POS sale elements**: Tests the presence of core POS UI controls (search map, checkout buttons)
+- **should navigate to auto-generated orders**: Tests navigation to automated purchase orders and print functions
 
 ### Setup for Selenium Tests
 Add to `frontend/package.json`:
