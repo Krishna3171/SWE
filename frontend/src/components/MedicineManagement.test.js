@@ -152,6 +152,9 @@ describe("MedicineManagement", () => {
 
   test("handles add medicine error", async () => {
     addMedicine.mockRejectedValue(new Error("Failed to add medicine"));
+    
+    // Suppress console.error so it doesn't pollute the test runner logs
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     render(<MedicineManagement />);
 
@@ -179,5 +182,7 @@ describe("MedicineManagement", () => {
     await waitFor(() => {
       expect(screen.getByText("Failed to add medicine")).toBeInTheDocument();
     });
+
+    consoleSpy.mockRestore();
   });
 });

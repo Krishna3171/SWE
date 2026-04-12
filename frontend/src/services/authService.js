@@ -4,7 +4,7 @@ const USER_CONTROLLER_LOGIN_URL =
 
 const mapBackendUser = (backendUser, credentials) => ({
   username: backendUser.username || credentials.username,
-  role: backendUser.role || credentials.role,
+  role: (backendUser.role || credentials.role).toLowerCase(),
   displayName:
     backendUser.displayName ||
     backendUser.fullName ||
