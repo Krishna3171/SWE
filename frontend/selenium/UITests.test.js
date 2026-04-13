@@ -2,6 +2,8 @@ const { Builder, By, until } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+
 
 jest.setTimeout(30000); // Increase timeout for Selenium tests
 
@@ -52,7 +54,11 @@ describe('Pharmacy Management System UI Tests', () => {
     if (driver) {
       if (expect.getState().currentTestName && expect.getState().lastExpectationStatus === 'failed') {
         const screenshot = await driver.takeScreenshot();
-        const screenshotPath = path.join(__dirname, `test-failure-${Date.now()}.png`);
+        const screenshotDir = path.join(__dirname, 'screenshot');
+        if (!fs.existsSync(screenshotDir)) {
+          fs.mkdirSync(screenshotDir, { recursive: true });
+        }
+        const screenshotPath = path.join(screenshotDir, `test-failure-${Date.now()}.png`);
         fs.writeFileSync(screenshotPath, screenshot, 'base64');
         console.log(`Screenshot saved to: ${screenshotPath}`);
       }
@@ -84,8 +90,8 @@ describe('Pharmacy Management System UI Tests', () => {
   });
 
   test('should show error for invalid login', async () => {
-    // Enter invalid username
-    const usernameInput = await driver.findElement(By.id('username'));
+    // Enter invalid username with explicit wait to prevent race conditions
+    const usernameInput = await driver.wait(until.elementLocated(By.id('username')), 10000);
     await usernameInput.clear();
     await usernameInput.sendKeys('invaliduser');
 
@@ -104,20 +110,6 @@ describe('Pharmacy Management System UI Tests', () => {
     expect(errorText).toContain('Invalid credentials');
   });
 
-  test('should navigate to medicine management', async () => {
-    await loginAsAdmin();
-
-    // Click on Medicine Management
-    const medicineLink = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Medicines')]")), 5000);
-    await medicineLink.click();
-
-    // Verify we're on medicine management page
-    await driver.wait(until.elementLocated(By.xpath("//h2[text()='Medicines']")), 5000);
-
-    // Check if medicine list is displayed
-    const medicineTable = await driver.wait(until.elementLocated(By.css('table')), 5000);
-    expect(medicineTable).toBeTruthy();
-  });
 
   test('should add new medicine', async () => {
     await loginAsAdmin();
@@ -162,21 +154,10 @@ describe('Pharmacy Management System UI Tests', () => {
     expect(searchInput).toBeTruthy();
   });
 
-  test('should navigate to vendor management', async () => {
-    await loginAsAdmin();
 
-    // Click on Vendors
-    const vendorLink = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Vendors')]")), 5000);
-    await vendorLink.click();
 
-    await driver.wait(until.elementLocated(By.xpath("//h2[text()='Vendor Details']")), 5000);
 
-    // Check if add vendor button exists
-    const addButton = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Add Vendor')]")), 5000);
-    expect(addButton).toBeTruthy();
-  });
-
-  test('should navigate to point of sale (Sales/POS)', async () => {
+  test('should make sale', async () => {
     await loginAsAdmin();
 
     // Click on Sales/POS
@@ -188,10 +169,51 @@ describe('Pharmacy Management System UI Tests', () => {
     // Verify cart header
     const cartHeader = await driver.wait(until.elementLocated(By.xpath("//h3[contains(., 'Current Cart')]")), 5000);
     expect(cartHeader).toBeTruthy();
+
+    // Search for crocin
+    const searchInput = await driver.wait(until.elementLocated(By.css('input[placeholder="Search by name, generic, or code..."]')), 5000);
+    await searchInput.click();
+    // clear input before typing just in case
+    await searchInput.clear();
+    await searchInput.sendKeys('crocin');
+
+    // Wait for the dropdown option container to appear (which means we found a medicine)
+    // We will look for a div that has padding '10px 14px' since those are the selectable options
+    const medOption = await driver.wait(until.elementLocated(By.xpath("//div[contains(@style, 'padding: 10px 14px')]")), 8000);
+    await driver.sleep(1000); // give time for the dropdown to attach React event listeners
+    await driver.executeScript("arguments[0].click();", medOption);
+
+    // Set Quantity to 1
+    const quantityInput = await driver.findElement(By.xpath("//label[text()='Quantity']/following-sibling::input"));
+    await quantityInput.clear();
+    await quantityInput.sendKeys('1');
+
+    // Add to Session
+    const addToSessionBtn = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Add to Session')]")), 5000);
+    // Explicitly wait for it to become enabled (if it is disabled, it means medicine wasn't properly selected)
+    await driver.wait(until.elementIsEnabled(addToSessionBtn), 5000);
+    await driver.sleep(500);
+    await driver.executeScript("arguments[0].click();", addToSessionBtn);
+    await driver.sleep(500);
+
+    // Checkout
+    const checkoutBtn = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'COMPLETE CHECKOUT')]")), 5000);
+    await driver.wait(until.elementIsEnabled(checkoutBtn), 5000);
+    await driver.sleep(500); // small delay for internal React state
+    await driver.executeScript("arguments[0].click();", checkoutBtn);
+
+    // Verify successful checkout layout opens
+    const successHeader = await driver.wait(until.elementLocated(By.xpath("//h2[text()='Payment Successful']")), 5000);
+    expect(successHeader).toBeTruthy();
+
+    // Close modal
+    const closeBtn = await driver.wait(until.elementLocated(By.xpath("//button[text()='Start Next Sale']")), 5000);
+    await driver.executeScript("arguments[0].click();", closeBtn);
   });
 
-  test('should open add vendor modal', async () => {
+  test('should verify add vendor component', async () => {
     await loginAsAdmin();
+
     const vendorLink = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Vendors')]")), 5000);
     await vendorLink.click();
     await driver.wait(until.elementLocated(By.xpath("//h2[text()='Vendor Details']")), 5000);
@@ -204,22 +226,6 @@ describe('Pharmacy Management System UI Tests', () => {
 
     const formHeading = await driver.wait(until.elementLocated(By.xpath("//h3[text()='Register New Vendor']")), 5000);
     expect(formHeading).toBeTruthy();
-  });
-
-  test('should verify POS sale elements', async () => {
-    await loginAsAdmin();
-    const posLink = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Sales/POS')]")), 5000);
-    await posLink.click();
-    await driver.wait(until.elementLocated(By.xpath("//h2[text()='Point of Sale']")), 5000);
-
-    const searchInput = await driver.wait(until.elementLocated(By.css('input[placeholder="Search by name, generic, or code..."]')), 5000);
-    expect(searchInput).toBeTruthy();
-
-    const addToSessionBtn = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Add to Session')]")), 5000);
-    expect(addToSessionBtn).toBeTruthy();
-
-    const checkoutBtn = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'COMPLETE CHECKOUT')]")), 5000);
-    expect(checkoutBtn).toBeTruthy();
   });
 
   test('should navigate to auto-generated orders', async () => {
