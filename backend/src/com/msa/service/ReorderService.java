@@ -14,6 +14,7 @@ public class ReorderService {
         private final InventoryDAO inventoryDAO = new InventoryDAO();
         private final MedicineDAO medicineDAO = new MedicineDAO();
         private final VendorMedicineDAO vendorMedicineDAO = new VendorMedicineDAO();
+        private final PurchaseDetailsDAO purchaseDetailsDAO = new PurchaseDetailsDAO();
 
         public ReorderReport generateReorderReport() {
 
@@ -27,6 +28,13 @@ public class ReorderService {
                         for (Inventory inventory : lowStockList) {
 
                                 int medicineId = inventory.getMedicineId();
+                                int pendingQuantity = purchaseDetailsDAO.getPendingQuantityByMedicineId(conn,
+                                                medicineId);
+                                int effectiveAvailable = inventory.getQuantityAvailable() + pendingQuantity;
+
+                                if (effectiveAvailable >= inventory.getReorderThreshold()) {
+                                        continue;
+                                }
 
                                 Medicine medicine = medicineDAO.getMedicineById(conn, medicineId);
                                 String medicineCode = medicine != null
@@ -40,7 +48,11 @@ public class ReorderService {
 
                                 // 3️⃣ Decide recommended quantity
                                 int recommendedQty = inventory.getReorderThreshold()
-                                                - inventory.getQuantityAvailable();
+                                                - effectiveAvailable;
+
+                                if (recommendedQty <= 0) {
+                                        continue;
+                                }
 
                                 reorderItems.add(
                                                 new ReorderItem(

@@ -23,9 +23,10 @@ public class PurchaseDetailsDAO {
                         quantity,
                         unit_price,
                         batch_id,
-                        purchase_date
+                        purchase_date,
+                        received
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (
@@ -37,6 +38,7 @@ public class PurchaseDetailsDAO {
             ps.setBigDecimal(4, detail.getUnitPrice());
             ps.setInt(5, detail.getBatchId());
             ps.setDate(6, Date.valueOf(detail.getPurchaseDate()));
+            ps.setBoolean(7, detail.isReceived());
 
             return ps.executeUpdate() > 0;
 
@@ -71,6 +73,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -89,6 +92,7 @@ public class PurchaseDetailsDAO {
         String sql = """
                     SELECT * FROM Purchase_Details
                     WHERE medicine_id = ?
+                      AND received = true
                 """;
 
         try (
@@ -105,6 +109,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -119,9 +124,10 @@ public class PurchaseDetailsDAO {
     public BigDecimal getAveragePurchasePriceForMedicine(Connection conn, int medicineId) {
 
         String sql = """
-                    SELECT AVG(unit_price) as avg_price
+                                        SELECT AVG(unit_price) as avg_price
                     FROM Purchase_Details
-                    WHERE medicine_id = ?
+                                        WHERE medicine_id = ?
+                                            AND received = true
                 """;
 
         try (
@@ -149,9 +155,11 @@ public class PurchaseDetailsDAO {
             java.time.LocalDate endDate) {
 
         String sql = """
-                    SELECT AVG(unit_price) as avg_price
+                                        SELECT AVG(unit_price) as avg_price
                     FROM Purchase_Details
-                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ?
+                                        WHERE medicine_id = ?
+                                            AND purchase_date BETWEEN ? AND ?
+                                            AND received = true
                 """;
 
         try (
@@ -236,7 +244,9 @@ public class PurchaseDetailsDAO {
 
         String sql = """
                     SELECT * FROM Purchase_Details
-                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ?
+                                        WHERE medicine_id = ?
+                                            AND purchase_date BETWEEN ? AND ?
+                                            AND received = true
                 """;
 
         try (
@@ -255,6 +265,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -263,5 +274,161 @@ public class PurchaseDetailsDAO {
         }
 
         return details;
+    }
+
+    public List<PurchaseDetails> getReceivedPurchaseDetailsInDateRange(
+            Connection conn,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate) {
+
+        List<PurchaseDetails> details = new ArrayList<>();
+
+        String sql = """
+                    SELECT * FROM Purchase_Details
+                    WHERE purchase_date BETWEEN ? AND ?
+                      AND received = true
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(startDate));
+            ps.setDate(2, Date.valueOf(endDate));
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
+                details.add(detail);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
+    }
+
+    public List<PurchaseDetails> getUnreceivedPurchaseDetailsByPurchaseId(Connection conn, int purchaseId) {
+
+        List<PurchaseDetails> details = new ArrayList<>();
+
+        String sql = """
+                    SELECT * FROM Purchase_Details
+                    WHERE purchase_id = ?
+                      AND received = false
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
+                details.add(detail);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
+    }
+
+    public boolean markPurchaseDetailReceived(Connection conn, int purchaseId, int batchId) {
+
+        String sql = """
+                    UPDATE Purchase_Details
+                    SET received = true
+                    WHERE purchase_id = ?
+                      AND batch_id = ?
+                      AND received = false
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ps.setInt(2, batchId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public int getPendingQuantityByMedicineId(Connection conn, int medicineId) {
+
+        String sql = """
+                    SELECT COALESCE(SUM(quantity), 0) AS pending_quantity
+                    FROM Purchase_Details
+                    WHERE medicine_id = ?
+                      AND received = false
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, medicineId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("pending_quantity");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public int getTotalQuantityByPurchaseId(Connection conn, int purchaseId) {
+
+        String sql = """
+                    SELECT COALESCE(SUM(quantity), 0) AS total_quantity
+                    FROM Purchase_Details
+                    WHERE purchase_id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("total_quantity");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    public int getReceivedQuantityByPurchaseId(Connection conn, int purchaseId) {
+
+        String sql = """
+                    SELECT COALESCE(SUM(quantity), 0) AS received_quantity
+                    FROM Purchase_Details
+                    WHERE purchase_id = ?
+                      AND received = true
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                return rs.getInt("received_quantity");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 }

@@ -15,13 +15,12 @@ public class VendorDAO {
     public boolean insertVendor(Connection conn, Vendor vendor) {
 
         String sql = """
-            INSERT INTO Vendor (vendor_name, address, contact_no)
-            VALUES (?, ?, ?)
-        """;
+                    INSERT INTO Vendor (vendor_name, address, contact_no)
+                    VALUES (?, ?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, vendor.getVendorName());
             ps.setString(2, vendor.getAddress());
@@ -50,8 +49,7 @@ public class VendorDAO {
         String sql = "SELECT * FROM Vendor WHERE vendor_id = ?";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, vendorId);
             ResultSet rs = ps.executeQuery();
@@ -78,8 +76,7 @@ public class VendorDAO {
         String sql = "SELECT * FROM Vendor WHERE vendor_name ILIKE ?";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, vendorName);
             ResultSet rs = ps.executeQuery();
@@ -107,9 +104,8 @@ public class VendorDAO {
         String sql = "SELECT * FROM Vendor";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Vendor vendor = new Vendor();
@@ -125,5 +121,61 @@ public class VendorDAO {
         }
 
         return vendors;
+    }
+
+    public boolean updateVendor(Connection conn, Vendor vendor) {
+
+        String sql = """
+                    UPDATE Vendor
+                    SET vendor_name = ?,
+                        address = ?,
+                        contact_no = ?
+                    WHERE vendor_id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, vendor.getVendorName());
+            ps.setString(2, vendor.getAddress());
+            ps.setString(3, vendor.getContactNo());
+            ps.setInt(4, vendor.getVendorId());
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    public boolean deleteVendor(Connection conn, int vendorId) {
+
+        String[] guardSqls = new String[] {
+                "SELECT 1 FROM Purchase WHERE vendor_id = ? LIMIT 1",
+                "SELECT 1 FROM Batch WHERE vendor_id = ? LIMIT 1",
+                "SELECT 1 FROM Vendor_Medicine WHERE vendor_id = ? LIMIT 1"
+        };
+
+        for (String guardSql : guardSqls) {
+            try (PreparedStatement guardPs = conn.prepareStatement(guardSql)) {
+                guardPs.setInt(1, vendorId);
+                ResultSet guardRs = guardPs.executeQuery();
+                if (guardRs.next()) {
+                    return false;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        String sql = "DELETE FROM Vendor WHERE vendor_id = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vendorId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }

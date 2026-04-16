@@ -237,4 +237,39 @@ public class MedicineDAO {
         return medicines;
     }
 
+    public boolean deleteMedicine(Connection conn, String medicineCode) {
+
+        String[] guardSqls = new String[] {
+                "SELECT 1 FROM Batch b JOIN Medicine m ON b.medicine_id = m.medicine_id WHERE m.medicine_code = ? LIMIT 1",
+                "SELECT 1 FROM Purchase_Details pd JOIN Medicine m ON pd.medicine_id = m.medicine_id WHERE m.medicine_code = ? LIMIT 1",
+                "SELECT 1 FROM Sales_Details sd JOIN Medicine m ON sd.medicine_id = m.medicine_id WHERE m.medicine_code = ? LIMIT 1",
+                "SELECT 1 FROM Vendor_Medicine vm JOIN Medicine m ON vm.medicine_id = m.medicine_id WHERE m.medicine_code = ? LIMIT 1",
+                "SELECT 1 FROM Inventory i JOIN Medicine m ON i.medicine_id = m.medicine_id WHERE m.medicine_code = ? LIMIT 1"
+        };
+
+        for (String guardSql : guardSqls) {
+            try (PreparedStatement guardPs = conn.prepareStatement(guardSql)) {
+                guardPs.setString(1, medicineCode);
+                ResultSet guardRs = guardPs.executeQuery();
+                if (guardRs.next()) {
+                    return false;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        String sql = "DELETE FROM Medicine WHERE medicine_code = ?";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, medicineCode);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
 }

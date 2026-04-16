@@ -220,11 +220,15 @@ public class ProfitReportService {
      */
     private BigDecimal calculateTotalPurchaseCost(Connection conn, LocalDate startDate, LocalDate endDate)
             throws SQLException {
-        List<Purchase> purchases = purchaseDAO.getPurchasesBetweenDates(conn, startDate, endDate);
+        List<PurchaseDetails> purchaseDetails = purchaseDetailsDAO.getReceivedPurchaseDetailsInDateRange(
+                conn,
+                startDate,
+                endDate);
 
         BigDecimal totalCost = BigDecimal.ZERO;
-        for (Purchase purchase : purchases) {
-            totalCost = totalCost.add(purchase.getTotalAmount());
+        for (PurchaseDetails detail : purchaseDetails) {
+            totalCost = totalCost.add(detail.getUnitPurchasePrice()
+                    .multiply(BigDecimal.valueOf(detail.getQuantity())));
         }
         return totalCost;
     }
@@ -281,17 +285,26 @@ public class ProfitReportService {
         java.util.Map<Integer, VendorProfitDetail> vendorMap = new java.util.HashMap<>();
 
         // Get all purchases between dates
-        List<Purchase> purchases = purchaseDAO.getPurchasesBetweenDates(conn, startDate, endDate);
+        List<PurchaseDetails> purchaseDetails = purchaseDetailsDAO.getReceivedPurchaseDetailsInDateRange(
+                conn,
+                startDate,
+                endDate);
 
-        for (Purchase purchase : purchases) {
+        for (PurchaseDetails receivedDetail : purchaseDetails) {
+            Purchase purchase = purchaseDAO.getPurchaseById(conn, receivedDetail.getPurchaseId());
+            if (purchase == null) {
+                continue;
+            }
+
             int vendorId = purchase.getVendorId();
 
-            VendorProfitDetail detail = vendorMap.getOrDefault(
+            VendorProfitDetail vendorDetail = vendorMap.getOrDefault(
                     vendorId,
                     new VendorProfitDetail(vendorId));
-            detail.addPurchaseCost(purchase.getTotalAmount());
+            vendorDetail.addPurchaseCost(receivedDetail.getUnitPurchasePrice()
+                    .multiply(BigDecimal.valueOf(receivedDetail.getQuantity())));
 
-            vendorMap.put(vendorId, detail);
+            vendorMap.put(vendorId, vendorDetail);
         }
 
         vendorProfits.addAll(vendorMap.values());

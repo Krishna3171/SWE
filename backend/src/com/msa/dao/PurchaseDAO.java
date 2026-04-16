@@ -117,4 +117,25 @@ public class PurchaseDAO {
             java.time.LocalDate endDate) {
         return getPurchasesInDateRange(conn, startDate, endDate);
     }
+
+    public List<Purchase> getAllPurchases(Connection conn) {
+        List<Purchase> purchases = new ArrayList<>();
+
+        String sql = "SELECT * FROM Purchase ORDER BY purchase_date DESC, purchase_id DESC";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Purchase purchase = new Purchase();
+                purchase.setPurchaseId(rs.getInt("purchase_id"));
+                purchase.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                purchase.setVendorId(rs.getInt("vendor_id"));
+                purchase.setTotalAmount(rs.getBigDecimal("total_amount"));
+                purchases.add(purchase);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return purchases;
+    }
 }

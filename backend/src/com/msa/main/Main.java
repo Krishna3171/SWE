@@ -17,8 +17,8 @@ public class Main {
 
     public static void main(String[] args) {
         // if (shouldRunDemo(args)) {
-        //     runDemo();
-        //     return;
+        // runDemo();
+        // return;
         // }
 
         startApiServer();
@@ -46,7 +46,15 @@ public class Main {
 
             System.out.println("MSA API server started on port " + port);
             System.out.println("Health endpoint: http://localhost:" + port + "/api/health");
-            System.out.println("Login endpoint: http://localhost:" + port + "/api/users/login");
+            System.out.println("User endpoints: http://localhost:" + port + "/api/users/login");
+            System.out.println("Admin endpoints: http://localhost:" + port + "/api/users/admin/change-credentials");
+            System.out.println("Purchase endpoints: http://localhost:" + port + "/api/purchases/create");
+            System.out.println("Sales endpoints: http://localhost:" + port + "/api/sales/create");
+            System.out.println("Report endpoints: http://localhost:" + port + "/api/reports/profit");
+            System.out.println("Medicine endpoints: http://localhost:" + port + "/api/medicines");
+            System.out.println("Vendor endpoints: http://localhost:" + port + "/api/vendors");
+            System.out.println("Vendor-medicine endpoints: http://localhost:" + port + "/api/vendor-medicine");
+            System.out.println("Inventory endpoints: http://localhost:" + port + "/api/inventory");
 
             Runtime.getRuntime().addShutdownHook(new Thread(apiServer::stop));
         } catch (Exception e) {

@@ -14,7 +14,14 @@ public class ApiServer {
     public ApiServer(int port) throws IOException {
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.createContext("/api/health", new HealthController());
-        this.server.createContext("/api/users/login", new UserController());
+        this.server.createContext("/api/users", new UserController());
+        this.server.createContext("/api/purchases", new PurchaseController());
+        this.server.createContext("/api/sales", new SalesController());
+        this.server.createContext("/api/reports", new ReportController());
+        this.server.createContext("/api/medicines", new MedicineController());
+        this.server.createContext("/api/vendors", new VendorController());
+        this.server.createContext("/api/vendor-medicine", new VendorMedicineController());
+        this.server.createContext("/api/inventory", new InventoryController());
         this.server.setExecutor(Executors.newFixedThreadPool(ServerConfig.getThreadPoolSize()));
     }
 

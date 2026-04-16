@@ -11,6 +11,7 @@ public class PurchaseDetails {
     private BigDecimal unitPrice;
     private int batchId;
     private LocalDate purchaseDate;
+    private boolean received;
 
     public PurchaseDetails() {
     }
@@ -23,6 +24,7 @@ public class PurchaseDetails {
         this.unitPrice = unitPrice;
         this.batchId = batchId;
         this.purchaseDate = purchaseDate;
+        this.received = false;
     }
 
     public int getPurchaseId() {
@@ -79,5 +81,13 @@ public class PurchaseDetails {
 
     public void setPurchaseDate(LocalDate purchaseDate) {
         this.purchaseDate = purchaseDate;
+    }
+
+    public boolean isReceived() {
+        return received;
+    }
+
+    public void setReceived(boolean received) {
+        this.received = received;
     }
 }

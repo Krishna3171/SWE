@@ -12,16 +12,15 @@ import com.msa.model.Inventory;
 public class InventoryDAO {
 
     // CREATE inventory row for a new medicine
-    public boolean createInventoryForMedicine(Connection conn,int medicineId, int quantity, int reorderThreshold) {
+    public boolean createInventoryForMedicine(Connection conn, int medicineId, int quantity, int reorderThreshold) {
 
         String sql = """
-            INSERT INTO Inventory (medicine_id, quantity_available, reorder_threshold)
-            VALUES (?, ?, ?)
-        """;
+                    INSERT INTO Inventory (medicine_id, quantity_available, reorder_threshold)
+                    VALUES (?, ?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ps.setInt(2, quantity);
@@ -37,13 +36,12 @@ public class InventoryDAO {
     }
 
     // GET inventory by medicine ID
-    public Inventory getInventoryByMedicineId(Connection conn,int medicineId) {
+    public Inventory getInventoryByMedicineId(Connection conn, int medicineId) {
 
         String sql = "SELECT * FROM Inventory WHERE medicine_id = ?";
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ResultSet rs = ps.executeQuery();
@@ -64,17 +62,16 @@ public class InventoryDAO {
     }
 
     // UPDATE quantity (used by sales & purchase)
-    public boolean updateQuantity(Connection conn,int medicineId, int newQuantity) {
+    public boolean updateQuantity(Connection conn, int medicineId, int newQuantity) {
 
         String sql = """
-            UPDATE Inventory
-            SET quantity_available = ?
-            WHERE medicine_id = ?
-        """;
+                    UPDATE Inventory
+                    SET quantity_available = ?
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, newQuantity);
             ps.setInt(2, medicineId);
@@ -89,17 +86,16 @@ public class InventoryDAO {
     }
 
     // UPDATE reorder threshold
-    public boolean updateReorderThreshold(Connection conn,int medicineId, int reorderThreshold) {
+    public boolean updateReorderThreshold(Connection conn, int medicineId, int reorderThreshold) {
 
         String sql = """
-            UPDATE Inventory
-            SET reorder_threshold = ?
-            WHERE medicine_id = ?
-        """;
+                    UPDATE Inventory
+                    SET reorder_threshold = ?
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, reorderThreshold);
             ps.setInt(2, medicineId);
@@ -119,14 +115,13 @@ public class InventoryDAO {
         List<Inventory> lowStock = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Inventory
-            WHERE quantity_available < reorder_threshold
-        """;
+                    SELECT * FROM Inventory
+                    WHERE quantity_available < reorder_threshold
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Inventory inventory = new Inventory();
@@ -144,17 +139,16 @@ public class InventoryDAO {
     }
 
     // REDUCE quantity (sales)
-    public boolean reduceQuantity(Connection conn,int medicineId, int amount) {
+    public boolean reduceQuantity(Connection conn, int medicineId, int amount) {
 
         String sql = """
-            UPDATE Inventory
-            SET quantity_available = quantity_available - ?
-            WHERE medicine_id = ?
-        """;
+                    UPDATE Inventory
+                    SET quantity_available = quantity_available - ?
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, amount);
             ps.setInt(2, medicineId);
@@ -168,17 +162,16 @@ public class InventoryDAO {
         return false;
     }
 
-    public boolean addQuantity(Connection conn,int medicineId, int amount) {
+    public boolean addQuantity(Connection conn, int medicineId, int amount) {
 
         String sql = """
-            UPDATE Inventory
-            SET quantity_available = quantity_available + ?
-            WHERE medicine_id = ?
-        """;
+                    UPDATE Inventory
+                    SET quantity_available = quantity_available + ?
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, amount);
             ps.setInt(2, medicineId);
@@ -190,6 +183,31 @@ public class InventoryDAO {
         }
 
         return false;
+    }
+
+    public List<Inventory> getAllInventory(Connection conn) {
+
+        List<Inventory> inventoryList = new ArrayList<>();
+
+        String sql = "SELECT * FROM Inventory";
+
+        try (
+                PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Inventory inventory = new Inventory();
+                inventory.setMedicineId(rs.getInt("medicine_id"));
+                inventory.setQuantityAvailable(rs.getInt("quantity_available"));
+                inventory.setReorderThreshold(rs.getInt("reorder_threshold"));
+                inventoryList.add(inventory);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return inventoryList;
     }
 
 }

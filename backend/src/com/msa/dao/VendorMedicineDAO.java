@@ -14,14 +14,17 @@ public class VendorMedicineDAO {
     // LINK vendor to medicine
     public boolean linkVendorToMedicine(Connection conn, int vendorId, int medicineId) {
 
+        if (existsMapping(conn, vendorId, medicineId)) {
+            return false;
+        }
+
         String sql = """
-            INSERT INTO Vendor_Medicine (vendor_id, medicine_id)
-            VALUES (?, ?)
-        """;
+                    INSERT INTO Vendor_Medicine (vendor_id, medicine_id)
+                    VALUES (?, ?)
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, vendorId);
             ps.setInt(2, medicineId);
@@ -41,13 +44,12 @@ public class VendorMedicineDAO {
         List<Integer> vendorIds = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Vendor_Medicine
-            WHERE medicine_id = ?
-        """;
+                    SELECT * FROM Vendor_Medicine
+                    WHERE medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, medicineId);
             ResultSet rs = ps.executeQuery();
@@ -72,13 +74,12 @@ public class VendorMedicineDAO {
         List<VendorMedicine> mappings = new ArrayList<>();
 
         String sql = """
-            SELECT * FROM Vendor_Medicine
-            WHERE vendor_id = ?
-        """;
+                    SELECT * FROM Vendor_Medicine
+                    WHERE vendor_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, vendorId);
             ResultSet rs = ps.executeQuery();
@@ -100,13 +101,12 @@ public class VendorMedicineDAO {
     public boolean existsMapping(Connection conn, int vendorId, int medicineId) {
 
         String sql = """
-            SELECT 1 FROM Vendor_Medicine
-            WHERE vendor_id = ? AND medicine_id = ?
-        """;
+                    SELECT 1 FROM Vendor_Medicine
+                    WHERE vendor_id = ? AND medicine_id = ?
+                """;
 
         try (
-            PreparedStatement ps = conn.prepareStatement(sql)
-        ) {
+                PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, vendorId);
             ps.setInt(2, medicineId);
@@ -117,5 +117,47 @@ public class VendorMedicineDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
-        }}
+        }
+    }
+
+    public boolean unlinkVendorFromMedicine(Connection conn, int vendorId, int medicineId) {
+
+        String sql = """
+                    DELETE FROM Vendor_Medicine
+                    WHERE vendor_id = ?
+                      AND medicine_id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, vendorId);
+            ps.setInt(2, medicineId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public List<VendorMedicine> getAllMappings(Connection conn) {
+
+        List<VendorMedicine> mappings = new ArrayList<>();
+
+        String sql = "SELECT * FROM Vendor_Medicine";
+
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                VendorMedicine vm = new VendorMedicine();
+                vm.setVendorId(rs.getInt("vendor_id"));
+                vm.setMedicineId(rs.getInt("medicine_id"));
+                mappings.add(vm);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return mappings;
+    }
 }

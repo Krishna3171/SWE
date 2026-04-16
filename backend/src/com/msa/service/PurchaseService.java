@@ -149,23 +149,14 @@ public class PurchaseService {
                                                 item.getUnitPurchasePrice(),
                                                 batch_id, // will be set after batch insert
                                                 purchaseDate);
+                                detail.setReceived(false);
 
                                 // b) Purchase_Details
                                 purchaseDetailsDAO.insertPurchaseDetail(
                                                 conn,
                                                 detail);
 
-                                // c) Inventory update (aggregate)
-                                boolean success = inventoryDAO.addQuantity(
-                                                conn,
-                                                resolved.medicineId,
-                                                item.getQuantity());
-
-                                if (!success) {
-                                        // inventory record doesn't exist, create it reorder threshold 0
-                                        inventoryDAO.createInventoryForMedicine(conn, resolved.medicineId,
-                                                        item.getQuantity(), 10);
-                                }
+                                // c) Inventory stays unchanged until the batch is received
                         }
 
                         conn.commit(); // 🟢 COMMIT
@@ -189,6 +180,73 @@ public class PurchaseService {
                                         "Purchase failed. Transaction rolled back.",
                                         e);
 
+                } finally {
+                        if (conn != null) {
+                                try {
+                                        conn.close();
+                                } catch (SQLException e) {
+                                        e.printStackTrace();
+                                }
+                        }
+                }
+        }
+
+        public int receivePurchase(int purchaseId) {
+                Connection conn = null;
+
+                try {
+                        conn = DBConnection.getConnection();
+                        conn.setAutoCommit(false);
+
+                        Purchase purchase = purchaseDAO.getPurchaseById(conn, purchaseId);
+                        if (purchase == null) {
+                                throw new RuntimeException("Purchase not found: " + purchaseId);
+                        }
+
+                        List<PurchaseDetails> pendingDetails = purchaseDetailsDAO
+                                        .getUnreceivedPurchaseDetailsByPurchaseId(conn, purchaseId);
+
+                        if (pendingDetails.isEmpty()) {
+                                throw new RuntimeException("Purchase already fully received: " + purchaseId);
+                        }
+
+                        int receivedCount = 0;
+
+                        for (PurchaseDetails detail : pendingDetails) {
+                                boolean success = inventoryDAO.addQuantity(
+                                                conn,
+                                                detail.getMedicineId(),
+                                                detail.getQuantity());
+
+                                if (!success) {
+                                        inventoryDAO.createInventoryForMedicine(
+                                                        conn,
+                                                        detail.getMedicineId(),
+                                                        detail.getQuantity(),
+                                                        10);
+                                }
+
+                                if (!purchaseDetailsDAO.markPurchaseDetailReceived(conn, purchaseId,
+                                                detail.getBatchId())) {
+                                        throw new RuntimeException("Failed to mark purchase detail received for batch: "
+                                                        + detail.getBatchId());
+                                }
+
+                                receivedCount++;
+                        }
+
+                        conn.commit();
+                        return receivedCount;
+
+                } catch (Exception e) {
+                        if (conn != null) {
+                                try {
+                                        conn.rollback();
+                                } catch (SQLException ex) {
+                                        ex.printStackTrace();
+                                }
+                        }
+                        throw new RuntimeException("Failed to receive purchase", e);
                 } finally {
                         if (conn != null) {
                                 try {
