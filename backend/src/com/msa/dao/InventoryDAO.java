@@ -150,6 +150,7 @@ public class InventoryDAO {
             UPDATE Inventory
             SET quantity_available = quantity_available - ?
             WHERE medicine_id = ?
+              AND quantity_available >= ?
         """;
 
         try (
@@ -158,6 +159,7 @@ public class InventoryDAO {
 
             ps.setInt(1, amount);
             ps.setInt(2, medicineId);
+            ps.setInt(3, amount);
 
             return ps.executeUpdate() > 0;
 
