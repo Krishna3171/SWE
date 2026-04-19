@@ -2,7 +2,7 @@ import "./App.css";
 import { useState } from "react";
 import DashboardView from "./components/DashboardView";
 import LoginView from "./components/LoginView";
-import { authenticateUser } from "./services/authService";
+import { authenticateUser, clearAuth } from "./services/authService";
 
 const APP_VIEW = {
   LOGIN: "login",
@@ -31,6 +31,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    clearAuth();
     setCurrentUser(null);
     setCurrentView(APP_VIEW.LOGIN);
     setAuthError("");

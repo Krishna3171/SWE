@@ -1,9 +1,11 @@
+import { getAuthHeaders } from './authService';
+
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const makeSale = async (items) => {
   const response = await fetch(`${API_BASE_URL}/sales`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify({ items }),
   });
   if (!response.ok) {
@@ -16,6 +18,7 @@ export const makeSale = async (items) => {
 export const getRecentSales = async () => {
   const response = await fetch(`${API_BASE_URL}/sales`, {
     method: "GET",
+    headers: getAuthHeaders(),
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -23,4 +26,3 @@ export const getRecentSales = async () => {
   }
   return response.json();
 };
-

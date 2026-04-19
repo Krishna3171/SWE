@@ -1,30 +1,31 @@
 import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
-  Pill, 
-  Warehouse, 
-  Users, 
-  ClipboardList, 
-  ShoppingCart, 
-  AlertTriangle, 
-  BarChart3, 
+import {
+  Pill,
+  Warehouse,
+  Users,
+  ClipboardList,
+  ShoppingCart,
+  AlertTriangle,
+  BarChart3,
   LogOut,
-  Search,
-  Bell,
-  Settings
+  Link2
 } from "lucide-react";
 
-import DashboardHome from "./DashboardHome";
 import MedicineManagement from "./MedicineManagement";
 import InventoryStock from "./InventoryStock";
 import VendorManagement from "./VendorManagement";
+import VendorMedicineLink from "./VendorMedicineLink";
 import OrderGeneration from "./OrderGeneration";
 import SalesBilling from "./SalesBilling";
 import ExpiredMedicines from "./ExpiredMedicines";
 import ReportsAnalytics from "./ReportsAnalytics";
 
+const CASHIER_TABS = ["orders", "sales", "inventory"];
+const ADMIN_TABS = ["medicine", "inventory", "orders", "sales", "vendors", "links", "expired", "reports"];
+
 export default function DashboardView({ user, onLogout }) {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const allowedTabs = user.role === "admin" ? ADMIN_TABS : CASHIER_TABS;
+  const [activeTab, setActiveTab] = useState(allowedTabs[0]);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -32,23 +33,25 @@ export default function DashboardView({ user, onLogout }) {
     return () => clearInterval(timer);
   }, []);
 
+  const safeTab = allowedTabs.includes(activeTab) ? activeTab : allowedTabs[0];
+
   const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard": return <DashboardHome />;
+    switch (safeTab) {
       case "medicine": return <MedicineManagement />;
       case "inventory": return <InventoryStock />;
       case "vendors": return <VendorManagement />;
-      case "orders": return <OrderGeneration />;
+      case "links": return <VendorMedicineLink />;
+      case "orders": return <OrderGeneration user={user} />;
       case "sales": return <SalesBilling />;
       case "expired": return <ExpiredMedicines />;
       case "reports": return <ReportsAnalytics user={user} />;
-      default: return <DashboardHome />;
+      default: return null;
     }
   };
 
   const NavButton = ({ id, label, Icon }) => (
-    <button 
-      className={`nav-item ${activeTab === id ? "active" : ""}`}
+    <button
+      className={`nav-item ${safeTab === id ? "active" : ""}`}
       onClick={() => setActiveTab(id)}
     >
       <Icon size={17} />
@@ -67,17 +70,22 @@ export default function DashboardView({ user, onLogout }) {
           <span className="brand">MSA System</span>
           <span className="sidebar-subtitle">Clinical Luminary</span>
         </div>
-        
+
         <nav className="nav-links">
-          <NavButton id="dashboard" label="Dashboard" Icon={LayoutDashboard} />
-          <NavButton id="medicine" label="Medicines" Icon={Pill} />
-          <NavButton id="inventory" label="Inventory & Stock" Icon={Warehouse} />
-          <NavButton id="orders" label="Orders" Icon={ClipboardList} />
-          <NavButton id="sales" label="Sales/POS" Icon={ShoppingCart} />
-          
-          {user.role === "admin" && (
+          {user.role === "cashier" ? (
             <>
+              <NavButton id="orders" label="Orders" Icon={ClipboardList} />
+              <NavButton id="sales" label="Sales/POS" Icon={ShoppingCart} />
+              <NavButton id="inventory" label="Inventory & Stock" Icon={Warehouse} />
+            </>
+          ) : (
+            <>
+              <NavButton id="medicine" label="Medicines" Icon={Pill} />
+              <NavButton id="inventory" label="Inventory & Stock" Icon={Warehouse} />
+              <NavButton id="orders" label="Orders" Icon={ClipboardList} />
+              <NavButton id="sales" label="Sales/POS" Icon={ShoppingCart} />
               <NavButton id="vendors" label="Vendors" Icon={Users} />
+              <NavButton id="links" label="Vendor–Medicine" Icon={Link2} />
               <NavButton id="expired" label="Expired Alerts" Icon={AlertTriangle} />
               <NavButton id="reports" label="Reports" Icon={BarChart3} />
             </>
@@ -99,18 +107,8 @@ export default function DashboardView({ user, onLogout }) {
       {/* Main */}
       <div className="main-wrapper">
         <header className="top-navbar no-print">
-          <div className="top-nav-search">
-            <Search size={16} className="search-icon" />
-            <input type="text" placeholder="Search medicines, codes, or generic names..." />
-          </div>
           <div className="top-nav-time">
             {dateStr} • {timeStr}
-          </div>
-          <div className="top-nav-profile">
-            <div className="top-nav-icons">
-              <button><Bell size={18} /></button>
-              <button><Settings size={18} /></button>
-            </div>
           </div>
         </header>
 

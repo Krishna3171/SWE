@@ -85,7 +85,7 @@ public class InventoryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetLowStock(HttpExchange exchange) throws IOException {
-        if (!requireRole(exchange, null, "admin")) {
+        if (!requireAnyRole(exchange, null, "admin", "cashier")) {
             return;
         }
         try (Connection conn = DBConnection.getConnection()) {

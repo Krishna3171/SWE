@@ -2,6 +2,13 @@ const USER_CONTROLLER_LOGIN_URL =
   process.env.REACT_APP_USER_LOGIN_URL ||
   "http://localhost:8080/api/users/login";
 
+export const getAuthHeaders = () => {
+  const role = sessionStorage.getItem("userRole");
+  return role ? { "X-User-Role": role } : {};
+};
+
+export const clearAuth = () => sessionStorage.removeItem("userRole");
+
 const mapBackendUser = (backendUser, credentials) => ({
   username: backendUser.username || credentials.username,
   role: (backendUser.role || credentials.role).toLowerCase(),
@@ -27,7 +34,9 @@ export const authenticateUser = async (credentials) => {
 
     if (response.ok) {
       const payload = await response.json();
-      return mapBackendUser(payload, credentials);
+      const user = mapBackendUser(payload, credentials);
+      sessionStorage.setItem("userRole", user.role);
+      return user;
     }
 
     let backendError = "";

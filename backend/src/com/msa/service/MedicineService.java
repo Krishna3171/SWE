@@ -1,14 +1,11 @@
 package com.msa.service;
 
-import com.msa.dao.BatchDAO;
 import com.msa.dao.InventoryDAO;
 import com.msa.dao.MedicineDAO;
 import com.msa.db.DBConnection;
-import com.msa.model.Batch;
 import com.msa.model.Medicine;
 
 import java.sql.Connection;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -16,11 +13,10 @@ public class MedicineService {
 
     private final MedicineDAO medicineDAO;
     private final InventoryDAO inventoryDAO;
-    private final BatchDAO batchDAO;
     private final Supplier<Connection> connectionProvider;
 
     public MedicineService() {
-        this(new MedicineDAO(), new InventoryDAO(), new BatchDAO(), () -> {
+        this(new MedicineDAO(), new InventoryDAO(), () -> {
             try {
                 return DBConnection.getConnection();
             } catch (Exception e) {
@@ -30,10 +26,9 @@ public class MedicineService {
     }
 
     public MedicineService(MedicineDAO medicineDAO, InventoryDAO inventoryDAO,
-                           BatchDAO batchDAO, Supplier<Connection> connectionProvider) {
+                           Supplier<Connection> connectionProvider) {
         this.medicineDAO = medicineDAO;
         this.inventoryDAO = inventoryDAO;
-        this.batchDAO = batchDAO;
         this.connectionProvider = connectionProvider;
     }
 
@@ -45,35 +40,13 @@ public class MedicineService {
         }
     }
 
-    /**
-     * Adds a new medicine to catalog, creates inventory record,
-     * and if initial stock > 0, also creates a proper Batch with expiry date
-     * so FEFO logic works from day one.
-     */
-    public boolean addMedicine(Medicine medicine, int initialQuantity,
-                               int reorderThreshold, String expiryDate, int vendorId) {
+    public boolean addMedicine(Medicine medicine) {
         try (Connection conn = connectionProvider.get()) {
             conn.setAutoCommit(false);
             try {
                 boolean inserted = medicineDAO.insertMedicine(conn, medicine);
                 if (inserted) {
-                    inventoryDAO.createInventoryForMedicine(
-                            conn, medicine.getMedicineId(), initialQuantity, reorderThreshold);
-
-                    // Create an initial batch only when vendor is explicitly provided.
-                    // Some deployments enforce vendor foreign key constraints.
-                    if (initialQuantity > 0
-                            && expiryDate != null
-                            && !expiryDate.isEmpty()
-                            && vendorId > 0) {
-                        Batch batch = new Batch();
-                        batch.setMedicineId(medicine.getMedicineId());
-                        batch.setBatchNumber("INIT-" + medicine.getMedicineCode());
-                        batch.setExpiryDate(LocalDate.parse(expiryDate));
-                        batch.setQuantity(initialQuantity);
-                        batch.setVendorId(vendorId);
-                        batchDAO.insertBatch(conn, batch);
-                    }
+                    inventoryDAO.createInventoryForMedicine(conn, medicine.getMedicineId(), 0, 10);
                 }
                 conn.commit();
                 return inserted;

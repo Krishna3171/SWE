@@ -147,7 +147,7 @@ export default function ReportsAnalytics({ user }) {
           </div>
           
           {/* Print specific structure */}
-          <div className="printable-area" style={{ display: "none" }}>
+          <div className="printable-area">
             <h2>MSA Financial Report</h2>
             <p><strong>Period:</strong> {dateRange.start} TO {dateRange.end}</p>
             <hr />

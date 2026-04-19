@@ -8,7 +8,7 @@ export default function MedicineManagement() {
   const [isAdding, setIsAdding] = useState(false);
   const [search, setSearch] = useState("");
   
-  const [form, setForm] = useState({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
+  const [form, setForm] = useState({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "" });
   const [toast, setToast] = useState(null);
 
   const fetchMedicines = async ({ throwOnError = false } = {}) => {
@@ -55,7 +55,7 @@ export default function MedicineManagement() {
         });
         setIsAdding(false);
         setSearch("");
-        setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "", initialQuantity: "", expiryDate: "", reorderThreshold: "", vendorId: "" });
+        setForm({ tradeName: "", genericName: "", unitSellingPrice: "", unitPurchasePrice: "" });
         setToast({ type: "success", msg: "Medicine Added Successfully!" });
         setTimeout(() => setToast(null), 3000);
         fetchMedicines();
@@ -86,29 +86,6 @@ export default function MedicineManagement() {
             <Plus size={16} /> Add Medicine
           </button>
         ) : null}
-      </div>
-
-      <div className="stats-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-        <div className="stat-card glass-card accent">
-          <div className="stat-label-row">
-            <div className="stat-icon"><Pill size={16} /></div>
-            <h3>Total Catalog</h3>
-          </div>
-          <div className="value">{medicines.length}</div>
-        </div>
-        <div className="stat-card glass-card success">
-          <div className="stat-label-row">
-            <div className="stat-icon"><Search size={16} /></div>
-            <h3>Active Generic</h3>
-          </div>
-          <div className="value">{new Set(medicines.map(m => m.genericName)).size}</div>
-        </div>
-        <div className="stat-card glass-card warning">
-          <div className="stat-label-row">
-            <h3>Market Value</h3>
-          </div>
-          <div className="value">${medicines.reduce((sum, m) => sum + (m.unitSellingPrice || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
-        </div>
       </div>
 
       <h3 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 16px" }}>Master Catalog</h3>
@@ -181,24 +158,6 @@ export default function MedicineManagement() {
               <div className="form-group">
                 <label htmlFor="unitPurchasePrice">Unit Purchase Price</label>
                 <input id="unitPurchasePrice" name="unitPurchasePrice" type="number" step="0.01" value={form.unitPurchasePrice} onChange={e => setForm({...form, unitPurchasePrice: e.target.value})} required />
-              </div>
-              <div className="form-group">
-                <label htmlFor="initialQuantity">Initial Quantity</label>
-                <input id="initialQuantity" name="initialQuantity" type="number" value={form.initialQuantity} onChange={e => setForm({...form, initialQuantity: e.target.value})} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="expiryDate">Expiry Date</label>
-                <input id="expiryDate" name="expiryDate" type="date" value={form.expiryDate} onChange={e => setForm({...form, expiryDate: e.target.value})} placeholder="Required if adding stock" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="reorderThreshold">Reorder Threshold</label>
-                <div style={{opacity:0.7, fontSize: "0.9rem", marginTop: "-6px"}}>(optional, default: 10)</div>
-                <input id="reorderThreshold" name="reorderThreshold" type="number" value={form.reorderThreshold} onChange={e => setForm({...form, reorderThreshold: e.target.value})} placeholder="10" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="vendorId">Vendor ID</label>
-                <div style={{opacity:0.7, fontSize: "0.9rem", marginTop: "-6px"}}>(optional)</div>
-                <input id="vendorId" name="vendorId" type="number" value={form.vendorId} onChange={e => setForm({...form, vendorId: e.target.value})} placeholder="e.g. 1" />
               </div>
 
               <div className="modal-actions">

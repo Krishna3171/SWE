@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './authService';
+
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const getAllMedicines = async () => {
@@ -14,7 +16,7 @@ export const getAllMedicines = async () => {
 export const addMedicine = async (medicineData) => {
   const response = await fetch(`${API_BASE_URL}/medicines`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
     body: JSON.stringify(medicineData),
   });
   if (!response.ok) {

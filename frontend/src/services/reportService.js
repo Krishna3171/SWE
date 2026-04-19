@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './authService';
+
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const getProfitReport = async (startDate, endDate) => {
@@ -5,7 +7,7 @@ export const getProfitReport = async (startDate, endDate) => {
   const params = new URLSearchParams();
   if (startDate) params.append("startDate", startDate);
   if (endDate) params.append("endDate", endDate);
-  
+
   const queryStr = params.toString();
   if (queryStr) {
     url += `?${queryStr}`;
@@ -13,6 +15,7 @@ export const getProfitReport = async (startDate, endDate) => {
 
   const response = await fetch(url, {
     method: "GET",
+    headers: getAuthHeaders()
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));

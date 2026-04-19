@@ -22,6 +22,7 @@ public class ApiServer {
         this.server.createContext("/api/inventory", new InventoryController());
         this.server.createContext("/api/batches", new BatchController());
         this.server.createContext("/api/purchases", new PurchaseController());
+        this.server.createContext("/api/vendor-medicine", new VendorMedicineController());
         this.server.setExecutor(Executors.newFixedThreadPool(ServerConfig.getThreadPoolSize()));
     }
 

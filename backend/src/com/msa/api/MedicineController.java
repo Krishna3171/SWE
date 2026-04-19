@@ -77,11 +77,6 @@ public class MedicineController extends BaseController implements HttpHandler {
         String genericName = extractJsonValue(body, "genericName");
         String spStr = extractJsonValue(body, "unitSellingPrice");
         String ppStr = extractJsonValue(body, "unitPurchasePrice");
-        String qtyStr = extractJsonValue(body, "initialQuantity");
-        String thresholdStr = extractJsonValue(body, "reorderThreshold");
-        String expiryDate = extractJsonValue(body, "expiryDate");
-        String vendorIdStr = extractJsonValue(body, "vendorId");
-
         if (isBlank(tradeName) || isBlank(genericName) || isBlank(spStr) || isBlank(ppStr)) {
             writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
             return;
@@ -93,11 +88,7 @@ public class MedicineController extends BaseController implements HttpHandler {
         m.setUnitSellingPrice(new BigDecimal(spStr));
         m.setUnitPurchasePrice(new BigDecimal(ppStr));
 
-        int qty = isBlank(qtyStr) ? 0 : Integer.parseInt(qtyStr);
-        int threshold = isBlank(thresholdStr) ? 10 : Integer.parseInt(thresholdStr);
-        int vendorId = isBlank(vendorIdStr) ? 0 : Integer.parseInt(vendorIdStr);
-
-        boolean added = medicineService.addMedicine(m, qty, threshold, expiryDate, vendorId);
+        boolean added = medicineService.addMedicine(m);
         if (added) {
             writeJson(exchange, 201,
                     "{\"message\":\"Medicine added\",\"medicineCode\":\"" + escapeJson(m.getMedicineCode()) + "\"}");

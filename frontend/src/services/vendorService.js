@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './authService';
+
 const API_BASE = "http://localhost:8080/api";
 
 export const getAllVendors = async () => {
@@ -11,7 +13,7 @@ export const getAllVendors = async () => {
 export const createVendor = async (vendorData) => {
   const response = await fetch(`${API_BASE}/vendors`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
     body: JSON.stringify(vendorData)
   });
   

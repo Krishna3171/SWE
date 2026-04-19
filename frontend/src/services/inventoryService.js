@@ -1,7 +1,11 @@
+import { getAuthHeaders } from './authService';
+
 const API_BASE = "http://localhost:8080/api";
 
 export const getInventory = async () => {
-  const response = await fetch(`${API_BASE}/inventory`);
+  const response = await fetch(`${API_BASE}/inventory`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch inventory');
   }
@@ -9,7 +13,9 @@ export const getInventory = async () => {
 };
 
 export const getLowStock = async () => {
-  const response = await fetch(`${API_BASE}/inventory/low-stock`);
+  const response = await fetch(`${API_BASE}/inventory/low-stock`, {
+    headers: getAuthHeaders()
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch low stock');
   }

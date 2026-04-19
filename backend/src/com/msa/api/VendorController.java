@@ -93,13 +93,13 @@ public class VendorController extends BaseController implements HttpHandler {
                     writeJson(exchange, 201,
                             "{\"message\":\"Vendor added\", \"vendorId\":" + vendor.getVendorId() + "}");
                 } else {
-                    writeJson(exchange, 500, "{\"error\":\"Failed to create vendor\"}");
+                    writeJson(exchange, 500, "{\"error\":\"Failed to insert vendor into database\"}");
                 }
             } catch (SQLException e) {
-                writeJson(exchange, 500, "{\"error\":\"Database error\"}");
+                writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
             }
         } catch (Exception e) {
-            writeJson(exchange, 400, "{\"error\":\"Bad Request\"}");
+            writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
     }
 

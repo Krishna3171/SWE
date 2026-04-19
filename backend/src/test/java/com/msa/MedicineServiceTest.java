@@ -1,16 +1,13 @@
 package com.msa;
 
-import com.msa.dao.BatchDAO;
 import com.msa.dao.InventoryDAO;
 import com.msa.dao.MedicineDAO;
-import com.msa.model.Batch;
 import com.msa.model.Medicine;
 import com.msa.service.MedicineService;
 import org.junit.Test;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,7 +29,7 @@ public class MedicineServiceTest {
         Medicine medicine2 = new Medicine("MED2", "Paracetamol", "Paracetamol", new BigDecimal("5.00"), new BigDecimal("4.00"));
         medicineDAO.allMedicines.addAll(Arrays.asList(medicine1, medicine2));
         Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, new StubInventoryDAO(), new StubBatchDAO(), connectionProvider);
+        MedicineService service = new MedicineService(medicineDAO, new StubInventoryDAO(), connectionProvider);
 
         List<Medicine> result = service.getAllMedicines();
 
@@ -43,86 +40,29 @@ public class MedicineServiceTest {
     }
 
     @Test
-    public void addMedicineCreatesInventoryAndBatchWhenInputsAreValid() throws Exception {
+    public void addMedicineCreatesInventoryRecordWithDefaults() throws Exception {
         AtomicBoolean closed = new AtomicBoolean(false);
         TxnState txn = new TxnState();
         Connection connection = stubConnection(closed, txn);
         StubMedicineDAO medicineDAO = new StubMedicineDAO();
         StubInventoryDAO inventoryDAO = new StubInventoryDAO();
-        StubBatchDAO batchDAO = new StubBatchDAO();
         Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, batchDAO, connectionProvider);
+        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, connectionProvider);
 
         Medicine medicine = new Medicine("MEDX", "Test Medicine", "Generic", new BigDecimal("15.00"), new BigDecimal("12.00"));
         medicine.setMedicineId(1);
         medicineDAO.insertResult = true;
 
-        boolean result = service.addMedicine(medicine, 10, 5, "2027-12-31", 7);
+        boolean result = service.addMedicine(medicine);
 
         assertTrue(result);
         assertTrue(txn.autoCommitDisabled);
         assertEquals(1, inventoryDAO.calls);
         assertEquals(1, inventoryDAO.lastMedicineId);
-        assertEquals(10, inventoryDAO.lastQuantity);
-        assertEquals(5, inventoryDAO.lastReorderThreshold);
-        assertEquals(1, batchDAO.insertCalls);
-
-        Batch createdBatch = batchDAO.lastBatch;
-        assertEquals(1, createdBatch.getMedicineId());
-        assertEquals("INIT-MEDX", createdBatch.getBatchNumber());
-        assertEquals(LocalDate.of(2027, 12, 31), createdBatch.getExpiryDate());
-        assertEquals(10, createdBatch.getQuantity());
-        assertEquals(7, createdBatch.getVendorId());
-
+        assertEquals(0, inventoryDAO.lastQuantity);
+        assertEquals(10, inventoryDAO.lastReorderThreshold);
         assertTrue(txn.committed);
         assertFalse(txn.rolledBack);
-        assertTrue(closed.get());
-    }
-
-    @Test
-    public void addMedicineSkipsBatchWhenQuantityIsZero() throws Exception {
-        AtomicBoolean closed = new AtomicBoolean(false);
-        TxnState txn = new TxnState();
-        Connection connection = stubConnection(closed, txn);
-        StubMedicineDAO medicineDAO = new StubMedicineDAO();
-        StubInventoryDAO inventoryDAO = new StubInventoryDAO();
-        StubBatchDAO batchDAO = new StubBatchDAO();
-        Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, batchDAO, connectionProvider);
-
-        Medicine medicine = new Medicine("MEDX", "Test Medicine", "Generic", new BigDecimal("15.00"), new BigDecimal("12.00"));
-        medicine.setMedicineId(1);
-        medicineDAO.insertResult = true;
-
-        boolean result = service.addMedicine(medicine, 0, 5, "2027-12-31", 7);
-
-        assertTrue(result);
-        assertEquals(1, inventoryDAO.calls);
-        assertEquals(0, batchDAO.insertCalls);
-        assertTrue(txn.committed);
-        assertTrue(closed.get());
-    }
-
-    @Test
-    public void addMedicineSkipsBatchWhenVendorIsInvalid() throws Exception {
-        AtomicBoolean closed = new AtomicBoolean(false);
-        TxnState txn = new TxnState();
-        Connection connection = stubConnection(closed, txn);
-        StubMedicineDAO medicineDAO = new StubMedicineDAO();
-        StubInventoryDAO inventoryDAO = new StubInventoryDAO();
-        StubBatchDAO batchDAO = new StubBatchDAO();
-        Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, batchDAO, connectionProvider);
-
-        Medicine medicine = new Medicine("MEDX", "Test Medicine", "Generic", new BigDecimal("15.00"), new BigDecimal("12.00"));
-        medicine.setMedicineId(1);
-        medicineDAO.insertResult = true;
-
-        boolean result = service.addMedicine(medicine, 10, 5, "2027-12-31", 0);
-
-        assertTrue(result);
-        assertEquals(0, batchDAO.insertCalls);
-        assertTrue(txn.committed);
         assertTrue(closed.get());
     }
 
@@ -133,19 +73,17 @@ public class MedicineServiceTest {
         Connection connection = stubConnection(closed, txn);
         StubMedicineDAO medicineDAO = new StubMedicineDAO();
         StubInventoryDAO inventoryDAO = new StubInventoryDAO();
-        StubBatchDAO batchDAO = new StubBatchDAO();
         Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, batchDAO, connectionProvider);
+        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, connectionProvider);
 
         Medicine medicine = new Medicine("MEDX", "Test Medicine", "Generic", new BigDecimal("15.00"), new BigDecimal("12.00"));
         medicine.setMedicineId(1);
         medicineDAO.insertResult = false;
 
-        boolean result = service.addMedicine(medicine, 10, 5, "2027-12-31", 7);
+        boolean result = service.addMedicine(medicine);
 
         assertFalse(result);
         assertEquals(0, inventoryDAO.calls);
-        assertEquals(0, batchDAO.insertCalls);
         assertTrue(txn.committed);
         assertFalse(txn.rolledBack);
         assertTrue(closed.get());
@@ -158,16 +96,15 @@ public class MedicineServiceTest {
         Connection connection = stubConnection(closed, txn);
         StubMedicineDAO medicineDAO = new StubMedicineDAO();
         StubInventoryDAO inventoryDAO = new StubInventoryDAO();
-        StubBatchDAO batchDAO = new StubBatchDAO();
         Supplier<Connection> connectionProvider = () -> connection;
-        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, batchDAO, connectionProvider);
+        MedicineService service = new MedicineService(medicineDAO, inventoryDAO, connectionProvider);
 
         Medicine medicine = new Medicine("MEDX", "Test Medicine", "Generic", new BigDecimal("15.00"), new BigDecimal("12.00"));
         medicine.setMedicineId(1);
         medicineDAO.throwOnInsert = true;
 
         RuntimeException ex = assertThrows(RuntimeException.class,
-                () -> service.addMedicine(medicine, 10, 5, "2027-12-31", 7));
+                () -> service.addMedicine(medicine));
 
         assertTrue(ex.getMessage().contains("Failed to add medicine"));
         assertTrue(txn.rolledBack);
@@ -251,18 +188,6 @@ public class MedicineServiceTest {
             this.lastQuantity = quantity;
             this.lastReorderThreshold = reorderThreshold;
             return true;
-        }
-    }
-
-    private static class StubBatchDAO extends BatchDAO {
-        private int insertCalls;
-        private Batch lastBatch;
-
-        @Override
-        public int insertBatch(Connection conn, Batch batch) {
-            this.insertCalls++;
-            this.lastBatch = batch;
-            return 1;
         }
     }
 }

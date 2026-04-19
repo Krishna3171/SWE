@@ -12,7 +12,7 @@ import com.msa.model.Vendor;
 public class VendorDAO {
 
     // INSERT
-    public boolean insertVendor(Connection conn, Vendor vendor) {
+    public boolean insertVendor(Connection conn, Vendor vendor) throws SQLException {
 
         String sql = """
             INSERT INTO Vendor (vendor_name, address, contact_no)
@@ -37,8 +37,6 @@ public class VendorDAO {
                 return true;
             }
 
-        } catch (SQLException e) {
-            e.printStackTrace();
         }
 
         return false;
