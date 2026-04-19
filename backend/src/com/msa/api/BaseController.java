@@ -2,7 +2,9 @@ package com.msa.api;
 
 import com.sun.net.httpserver.HttpExchange;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,11 +26,20 @@ public abstract class BaseController {
     }
 
     protected static String readRequestBody(HttpExchange exchange, int maxBytes) throws IOException {
-        byte[] bytes = exchange.getRequestBody().readAllBytes();
-        if (bytes.length > maxBytes) {
-            throw new IllegalArgumentException("Request body too large");
+        try (InputStream in = exchange.getRequestBody();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int total = 0;
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                total += read;
+                if (total > maxBytes) {
+                    throw new IllegalArgumentException("Request body too large");
+                }
+                out.write(buffer, 0, read);
+            }
+            return out.toString(StandardCharsets.UTF_8);
         }
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     protected static void writeJson(HttpExchange exchange, int statusCode, String json) throws IOException {
