@@ -15,23 +15,35 @@ public class ReorderService {
         private final InventoryDAO inventoryDAO;
         private final MedicineDAO medicineDAO;
         private final VendorMedicineDAO vendorMedicineDAO;
+        private final SalesDetailsDAO salesDetailsDAO;
         private final Supplier<Connection> connectionProvider;
 
         public ReorderService() {
-                this(new InventoryDAO(), new MedicineDAO(), new VendorMedicineDAO(), () -> {
-                        try {
-                                return DBConnection.getConnection();
-                        } catch (Exception e) {
-                                throw new RuntimeException("Failed to get database connection", e);
+                this(
+                        new InventoryDAO(),
+                        new MedicineDAO(),
+                        new VendorMedicineDAO(),
+                        new SalesDetailsDAO(),
+                        () -> {
+                                try {
+                                        return DBConnection.getConnection();
+                                } catch (Exception e) {
+                                        throw new RuntimeException("Failed to get database connection", e);
+                                }
                         }
-                });
+                );
         }
 
-        public ReorderService(InventoryDAO inventoryDAO, MedicineDAO medicineDAO,
-                        VendorMedicineDAO vendorMedicineDAO, Supplier<Connection> connectionProvider) {
+        public ReorderService(
+                        InventoryDAO inventoryDAO,
+                        MedicineDAO medicineDAO,
+                        VendorMedicineDAO vendorMedicineDAO,
+                        SalesDetailsDAO salesDetailsDAO,
+                        Supplier<Connection> connectionProvider) {
                 this.inventoryDAO = inventoryDAO;
                 this.medicineDAO = medicineDAO;
                 this.vendorMedicineDAO = vendorMedicineDAO;
+                this.salesDetailsDAO = salesDetailsDAO;
                 this.connectionProvider = connectionProvider;
         }
 
@@ -59,21 +71,29 @@ public class ReorderService {
                                                 medicineId);
 
                                 // 3️⃣ Decide recommended quantity
-                                int recommendedQty = inventory.getReorderThreshold()
-                                                - inventory.getQuantityAvailable();
+                                int defaultThreshold = inventory.getReorderThreshold();
+                                Integer avgDailySalesThisWeek =
+                                                salesDetailsDAO.getAverageDailySalesLast7Days(conn, medicineId);
+
+                                int dynamicThreshold =
+                                                (avgDailySalesThisWeek != null && avgDailySalesThisWeek > 0)
+                                                                ? avgDailySalesThisWeek
+                                                                : defaultThreshold;
+
+                                int recommendedQty = Math.max(
+                                                0,
+                                                dynamicThreshold - inventory.getQuantityAvailable());
 
                                 reorderItems.add(
                                                 new ReorderItem(
                                                                 medicineCode,
                                                                 inventory.getQuantityAvailable(),
-                                                                inventory.getReorderThreshold(),
+                                                                dynamicThreshold,
                                                                 recommendedQty,
                                                                 vendorIds));
                         }
 
-                        return new ReorderReport(
-                                        reorderItems,
-                                        reorderItems.size());
+                        return new ReorderReport(reorderItems, reorderItems.size());
 
                 } catch (Exception e) {
                         throw new RuntimeException("Failed to generate reorder report", e);

@@ -1,15 +1,7 @@
 package com.msa.dao;
 
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.math.BigDecimal;
-
-import com.msa.model.SalesDetails;
+import java.sql.*;
+import java.time.LocalDate;
 
 public class SalesDetailsDAO {
 
@@ -223,5 +215,43 @@ public class SalesDetailsDAO {
         }
 
         return details;
+    }
+
+    /**
+     * Average daily sales for the current week window (last 7 days including today).
+     * Returns null when no sales happened in that period.
+     */
+    public Integer getAverageDailySalesLast7Days(Connection conn, int medicineId) {
+        String sql = """
+            SELECT COALESCE(SUM(d.quantity_sold), 0) AS total_sold,
+                   COUNT(DISTINCT s.sale_date) AS active_days
+            FROM Sales_Details d
+            JOIN Sales s ON s.sale_id = d.sale_id
+            WHERE d.medicine_id = ?
+              AND s.sale_date BETWEEN ? AND ?
+        """;
+
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(6);
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, medicineId);
+            ps.setDate(2, Date.valueOf(start));
+            ps.setDate(3, Date.valueOf(end));
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int activeDays = rs.getInt("active_days");
+                    if (activeDays == 0) return null; // fallback to default threshold in ReorderService
+
+                    int totalSold = rs.getInt("total_sold");
+                    return (int) Math.ceil(totalSold / (double) activeDays);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to calculate 7-day average sales", e);
+        }
+
+        return null;
     }
 }
