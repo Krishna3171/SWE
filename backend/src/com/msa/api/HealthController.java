@@ -1,9 +1,11 @@
 package com.msa.api;
 
+import com.msa.db.DBConnection;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
+import java.sql.Connection;
 
 public class HealthController extends BaseController implements HttpHandler {
 
@@ -20,6 +22,10 @@ public class HealthController extends BaseController implements HttpHandler {
             return;
         }
 
-        writeJson(exchange, 200, "{\"status\":\"UP\"}");
+        try (Connection ignored = DBConnection.getConnection()) {
+            writeJson(exchange, 200, "{\"status\":\"UP\",\"db\":\"UP\"}");
+        } catch (Exception e) {
+            writeJson(exchange, 503, "{\"status\":\"DOWN\",\"db\":\"DOWN\"}");
+        }
     }
 }
