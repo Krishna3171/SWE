@@ -13,8 +13,24 @@ import com.msa.model.PurchaseDetails;
 
 public class PurchaseDetailsDAO {
 
+    private static volatile boolean receivedColumnEnsured = false;
+
+    private void ensureReceivedColumn(Connection conn) {
+        if (receivedColumnEnsured) {
+            return;
+        }
+        String sql = "ALTER TABLE Purchase_Details ADD COLUMN IF NOT EXISTS received BOOLEAN NOT NULL DEFAULT FALSE";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.execute();
+            receivedColumnEnsured = true;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to ensure Purchase_Details.received column", e);
+        }
+    }
+
     // INSERT purchase line item
     public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) {
+        ensureReceivedColumn(conn);
 
         String sql = """
                     INSERT INTO Purchase_Details (
@@ -23,9 +39,10 @@ public class PurchaseDetailsDAO {
                         quantity,
                         unit_price,
                         batch_id,
-                        purchase_date
+                        purchase_date,
+                        received
                     )
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (
@@ -37,6 +54,7 @@ public class PurchaseDetailsDAO {
             ps.setBigDecimal(4, detail.getUnitPrice());
             ps.setInt(5, detail.getBatchId());
             ps.setDate(6, Date.valueOf(detail.getPurchaseDate()));
+            ps.setBoolean(7, detail.isReceived());
 
             return ps.executeUpdate() > 0;
 
@@ -49,6 +67,7 @@ public class PurchaseDetailsDAO {
 
     // GET all line items for a purchase
     public List<PurchaseDetails> getPurchaseDetailsByPurchaseId(Connection conn, int purchaseId) {
+        ensureReceivedColumn(conn);
 
         List<PurchaseDetails> details = new ArrayList<>();
 
@@ -71,6 +90,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -83,6 +103,7 @@ public class PurchaseDetailsDAO {
 
     // GET purchase details by medicine ID (for profit calculation)
     public List<PurchaseDetails> getPurchaseDetailsByMedicineId(Connection conn, int medicineId) {
+        ensureReceivedColumn(conn);
 
         List<PurchaseDetails> details = new ArrayList<>();
 
@@ -105,6 +126,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -117,11 +139,12 @@ public class PurchaseDetailsDAO {
 
     // GET average purchase price for a medicine (for profit margin calculation)
     public BigDecimal getAveragePurchasePriceForMedicine(Connection conn, int medicineId) {
+        ensureReceivedColumn(conn);
 
         String sql = """
                     SELECT AVG(unit_price) as avg_price
                     FROM Purchase_Details
-                    WHERE medicine_id = ?
+                    WHERE medicine_id = ? AND received = TRUE
                 """;
 
         try (
@@ -147,11 +170,12 @@ public class PurchaseDetailsDAO {
             int medicineId,
             java.time.LocalDate startDate,
             java.time.LocalDate endDate) {
+        ensureReceivedColumn(conn);
 
         String sql = """
                     SELECT AVG(unit_price) as avg_price
                     FROM Purchase_Details
-                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ?
+                    WHERE medicine_id = ? AND purchase_date BETWEEN ? AND ? AND received = TRUE
                 """;
 
         try (
@@ -175,10 +199,11 @@ public class PurchaseDetailsDAO {
 
     // GET unit purchase price
     public BigDecimal getUnitPurchasePrice(Connection conn, int purchaseId, int medicineId) {
+        ensureReceivedColumn(conn);
 
         String sql = """
                     SELECT unit_price FROM Purchase_Details
-                    WHERE purchase_id = ? AND medicine_id = ?
+                    WHERE purchase_id = ? AND medicine_id = ? AND received = TRUE
                 """;
 
         try (
@@ -201,10 +226,11 @@ public class PurchaseDetailsDAO {
 
     // GET quantity for a medicine
     public int getQuantity(Connection conn, int purchaseId, int medicineId) {
+        ensureReceivedColumn(conn);
 
         String sql = """
                     SELECT quantity FROM Purchase_Details
-                    WHERE purchase_id = ? AND medicine_id = ?
+                    WHERE purchase_id = ? AND medicine_id = ? AND received = TRUE
                 """;
 
         try (
@@ -231,6 +257,7 @@ public class PurchaseDetailsDAO {
             int medicineId,
             java.time.LocalDate startDate,
             java.time.LocalDate endDate) {
+        ensureReceivedColumn(conn);
 
         List<PurchaseDetails> details = new ArrayList<>();
 
@@ -255,6 +282,7 @@ public class PurchaseDetailsDAO {
                 detail.setUnitPrice(rs.getBigDecimal("unit_price"));
                 detail.setBatchId(rs.getInt("batch_id"));
                 detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
                 details.add(detail);
             }
 
@@ -263,5 +291,82 @@ public class PurchaseDetailsDAO {
         }
 
         return details;
+    }
+
+    public PurchaseDetails getPurchaseDetailByPurchaseAndBatch(Connection conn, int purchaseId, int batchId) {
+        ensureReceivedColumn(conn);
+        String sql = """
+                    SELECT * FROM Purchase_Details
+                    WHERE purchase_id = ? AND batch_id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ps.setInt(2, batchId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
+                return detail;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public List<PurchaseDetails> getPendingPurchaseDetails(Connection conn) {
+        ensureReceivedColumn(conn);
+        List<PurchaseDetails> details = new ArrayList<>();
+
+        String sql = """
+                    SELECT * FROM Purchase_Details
+                    WHERE received = FALSE
+                    ORDER BY purchase_date ASC, purchase_id ASC
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                PurchaseDetails detail = new PurchaseDetails();
+                detail.setPurchaseId(rs.getInt("purchase_id"));
+                detail.setMedicineId(rs.getInt("medicine_id"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getBigDecimal("unit_price"));
+                detail.setBatchId(rs.getInt("batch_id"));
+                detail.setPurchaseDate(rs.getDate("purchase_date").toLocalDate());
+                detail.setReceived(rs.getBoolean("received"));
+                details.add(detail);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return details;
+    }
+
+    public boolean markAsReceived(Connection conn, int purchaseId, int batchId) {
+        ensureReceivedColumn(conn);
+        String sql = """
+                    UPDATE Purchase_Details
+                    SET received = TRUE
+                    WHERE purchase_id = ? AND batch_id = ? AND received = FALSE
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, purchaseId);
+            ps.setInt(2, batchId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }

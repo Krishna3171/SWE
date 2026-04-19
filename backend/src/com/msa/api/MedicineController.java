@@ -52,13 +52,13 @@ public class MedicineController extends BaseController implements HttpHandler {
         for (int i = 0; i < list.size(); i++) {
             Medicine m = list.get(i);
             json.append("{")
-                .append("\"medicineId\":").append(m.getMedicineId()).append(",")
-                .append("\"medicineCode\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                .append("\"genericName\":\"").append(escapeJson(m.getGenericName())).append("\",")
-                .append("\"unitSellingPrice\":").append(m.getUnitSellingPrice()).append(",")
-                .append("\"unitPurchasePrice\":").append(m.getUnitPurchasePrice())
-                .append("}");
+                    .append("\"medicineId\":").append(m.getMedicineId()).append(",")
+                    .append("\"medicineCode\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
+                    .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
+                    .append("\"genericName\":\"").append(escapeJson(m.getGenericName())).append("\",")
+                    .append("\"unitSellingPrice\":").append(m.getUnitSellingPrice()).append(",")
+                    .append("\"unitPurchasePrice\":").append(m.getUnitPurchasePrice())
+                    .append("}");
             if (i < list.size() - 1) {
                 json.append(",");
             }
@@ -69,7 +69,10 @@ public class MedicineController extends BaseController implements HttpHandler {
 
     private void handlePost(HttpExchange exchange) throws IOException {
         String body = readRequestBody(exchange, MAX_REQUEST_BYTES);
-        
+        if (!requireRole(exchange, body, "admin")) {
+            return;
+        }
+
         String tradeName = extractJsonValue(body, "tradeName");
         String genericName = extractJsonValue(body, "genericName");
         String spStr = extractJsonValue(body, "unitSellingPrice");
@@ -96,7 +99,8 @@ public class MedicineController extends BaseController implements HttpHandler {
 
         boolean added = medicineService.addMedicine(m, qty, threshold, expiryDate, vendorId);
         if (added) {
-            writeJson(exchange, 201, "{\"message\":\"Medicine added\",\"medicineCode\":\"" + escapeJson(m.getMedicineCode()) + "\"}");
+            writeJson(exchange, 201,
+                    "{\"message\":\"Medicine added\",\"medicineCode\":\"" + escapeJson(m.getMedicineCode()) + "\"}");
         } else {
             writeJson(exchange, 400, "{\"error\":\"Failed to add medicine\"}");
         }

@@ -37,7 +37,7 @@ public class InventoryController extends BaseController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-            
+
             if (path.endsWith("/low-stock")) {
                 handleGetLowStock(exchange);
             } else {
@@ -50,10 +50,14 @@ public class InventoryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetAllInventory(HttpExchange exchange) throws IOException {
-        // Since there is no getAllInventory in DAO directly, we'll manually fetch all medicines + inventory.
+        if (!requireAnyRole(exchange, null, "cashier", "admin")) {
+            return;
+        }
+        // Since there is no getAllInventory in DAO directly, we'll manually fetch all
+        // medicines + inventory.
         try (Connection conn = DBConnection.getConnection()) {
             List<Medicine> medicines = medicineDAO.getAllMedicines(conn);
-            
+
             StringBuilder sb = new StringBuilder();
             sb.append("[");
             for (int i = 0; i < medicines.size(); i++) {
@@ -61,18 +65,19 @@ public class InventoryController extends BaseController implements HttpHandler {
                 Inventory inv = inventoryDAO.getInventoryByMedicineId(conn, m.getMedicineId());
                 int qty = inv != null ? inv.getQuantityAvailable() : 0;
                 int threshold = inv != null ? inv.getReorderThreshold() : 0;
-                
+
                 sb.append("{")
-                  .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                  .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                  .append("\"currentStock\":").append(qty).append(",")
-                  .append("\"threshold\":").append(threshold).append(",")
-                  .append("\"rack\":\"A-10\"") // Hardcoded rack since DB schema lacks it
-                  .append("}");
-                if (i < medicines.size() - 1) sb.append(",");
+                        .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
+                        .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
+                        .append("\"currentStock\":").append(qty).append(",")
+                        .append("\"threshold\":").append(threshold).append(",")
+                        .append("\"rack\":\"A-10\"") // Hardcoded rack since DB schema lacks it
+                        .append("}");
+                if (i < medicines.size() - 1)
+                    sb.append(",");
             }
             sb.append("]");
-            
+
             writeJson(exchange, 200, sb.toString());
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error\"}");
@@ -80,15 +85,18 @@ public class InventoryController extends BaseController implements HttpHandler {
     }
 
     private void handleGetLowStock(HttpExchange exchange) throws IOException {
+        if (!requireRole(exchange, null, "admin")) {
+            return;
+        }
         try (Connection conn = DBConnection.getConnection()) {
             List<Inventory> lowStockList = inventoryDAO.getLowStockMedicines(conn);
             StringBuilder sb = new StringBuilder();
             sb.append("[");
-            
+
             for (int i = 0; i < lowStockList.size(); i++) {
                 Inventory inv = lowStockList.get(i);
                 Medicine m = medicineDAO.getMedicineById(conn, inv.getMedicineId());
-                
+
                 List<Integer> vIds = vendorMedicineDAO.getVendorsForMedicine(conn, m.getMedicineId());
                 String vendorStr = "Unknown Vendor";
                 if (!vIds.isEmpty()) {
@@ -96,17 +104,19 @@ public class InventoryController extends BaseController implements HttpHandler {
                 }
 
                 sb.append("{")
-                  .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                  .append("\"name\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                  .append("\"current\":").append(inv.getQuantityAvailable()).append(",")
-                  .append("\"threshold\":").append(inv.getReorderThreshold()).append(",")
-                  .append("\"toOrder\":").append(Math.max(10, inv.getReorderThreshold() - inv.getQuantityAvailable() + 20)).append(",")
-                  .append("\"vendor\":\"").append(vendorStr).append("\"")
-                  .append("}");
-                if (i < lowStockList.size() - 1) sb.append(",");
+                        .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
+                        .append("\"name\":\"").append(escapeJson(m.getTradeName())).append("\",")
+                        .append("\"current\":").append(inv.getQuantityAvailable()).append(",")
+                        .append("\"threshold\":").append(inv.getReorderThreshold()).append(",")
+                        .append("\"toOrder\":")
+                        .append(Math.max(10, inv.getReorderThreshold() - inv.getQuantityAvailable() + 20)).append(",")
+                        .append("\"vendor\":\"").append(vendorStr).append("\"")
+                        .append("}");
+                if (i < lowStockList.size() - 1)
+                    sb.append(",");
             }
             sb.append("]");
-            
+
             writeJson(exchange, 200, sb.toString());
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error\"}");

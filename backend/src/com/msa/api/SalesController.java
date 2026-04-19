@@ -56,6 +56,9 @@ public class SalesController extends BaseController implements HttpHandler {
     }
 
     private void handleGetRecentSales(HttpExchange exchange) throws IOException {
+        if (!requireAnyRole(exchange, null, "cashier", "admin")) {
+            return;
+        }
         Connection conn = null;
         try {
             conn = DBConnection.getConnection();
@@ -91,12 +94,14 @@ public class SalesController extends BaseController implements HttpHandler {
                     json.append("\"quantity\":").append(d.getQuantitySold()).append(",");
                     json.append("\"unitPrice\":").append(d.getPrice());
                     json.append("}");
-                    if (j < details.size() - 1) json.append(",");
+                    if (j < details.size() - 1)
+                        json.append(",");
                 }
                 json.append("]");
 
                 json.append("}");
-                if (i < recentSales.size() - 1) json.append(",");
+                if (i < recentSales.size() - 1)
+                    json.append(",");
             }
 
             json.append("]");
@@ -108,7 +113,10 @@ public class SalesController extends BaseController implements HttpHandler {
             writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
         } finally {
             if (conn != null) {
-                try { conn.close(); } catch (Exception ignored) {}
+                try {
+                    conn.close();
+                } catch (Exception ignored) {
+                }
             }
         }
     }
@@ -116,12 +124,16 @@ public class SalesController extends BaseController implements HttpHandler {
     private void handleMakeSale(HttpExchange exchange) throws IOException {
         try {
             String body = readRequestBody(exchange, MAX_REQUEST_BYTES);
-            
-            // Extract items logic: 
+            if (!requireAnyRole(exchange, body, "cashier", "admin")) {
+                return;
+            }
+
+            // Extract items logic:
             // format: "medicineCode":"xyz", "quantity":5
             List<SaleItemRequest> items = new ArrayList<>();
-            
-            Pattern pattern = Pattern.compile("\\\"medicineCode\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"\\s*,\\s*\\\"quantity\\\"\\s*:\\s*(\\d+)");
+
+            Pattern pattern = Pattern
+                    .compile("\\\"medicineCode\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"\\s*,\\s*\\\"quantity\\\"\\s*:\\s*(\\d+)");
             Matcher matcher = pattern.matcher(body);
             while (matcher.find()) {
                 String code = matcher.group(1);

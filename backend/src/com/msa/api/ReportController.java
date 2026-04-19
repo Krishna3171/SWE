@@ -32,6 +32,10 @@ public class ReportController extends BaseController implements HttpHandler {
             return;
         }
 
+        if (!requireRole(exchange, null, "admin")) {
+            return;
+        }
+
         try {
             String query = exchange.getRequestURI().getQuery();
             Map<String, String> params = parseQuery(query);
@@ -51,27 +55,28 @@ public class ReportController extends BaseController implements HttpHandler {
 
             StringBuilder json = new StringBuilder();
             json.append("{")
-                .append("\"startDate\":\"").append(resp.getStartDate()).append("\",")
-                .append("\"endDate\":\"").append(resp.getEndDate()).append("\",")
-                .append("\"totalSalesRevenue\":").append(resp.getTotalSalesRevenue()).append(",")
-                .append("\"totalPurchaseCost\":").append(resp.getTotalPurchaseCost()).append(",")
-                .append("\"totalProfit\":").append(resp.getTotalProfit()).append(",")
-                .append("\"profitMargin\":").append(resp.getProfitMargin()).append(",");
+                    .append("\"startDate\":\"").append(resp.getStartDate()).append("\",")
+                    .append("\"endDate\":\"").append(resp.getEndDate()).append("\",")
+                    .append("\"totalSalesRevenue\":").append(resp.getTotalSalesRevenue()).append(",")
+                    .append("\"totalPurchaseCost\":").append(resp.getTotalPurchaseCost()).append(",")
+                    .append("\"totalProfit\":").append(resp.getTotalProfit()).append(",")
+                    .append("\"profitMargin\":").append(resp.getProfitMargin()).append(",");
 
             json.append("\"medicineProfits\":[");
             if (resp.getMedicineProfits() != null) {
                 for (int i = 0; i < resp.getMedicineProfits().size(); i++) {
                     var m = resp.getMedicineProfits().get(i);
                     json.append("{")
-                        .append("\"medicineId\":").append(m.getMedicineId()).append(",")
-                        .append("\"medicineName\":\"").append(escapeJson(m.getMedicineName())).append("\",")
-                        .append("\"totalRevenue\":").append(m.getTotalRevenue()).append(",")
-                        .append("\"totalCost\":").append(m.getTotalCost()).append(",")
-                        .append("\"profit\":").append(m.getProfit()).append(",")
-                        .append("\"profitMargin\":").append(m.getProfitMargin()).append(",")
-                        .append("\"totalQuantity\":").append(m.getTotalQuantity())
-                        .append("}");
-                    if (i < resp.getMedicineProfits().size() - 1) json.append(",");
+                            .append("\"medicineId\":").append(m.getMedicineId()).append(",")
+                            .append("\"medicineName\":\"").append(escapeJson(m.getMedicineName())).append("\",")
+                            .append("\"totalRevenue\":").append(m.getTotalRevenue()).append(",")
+                            .append("\"totalCost\":").append(m.getTotalCost()).append(",")
+                            .append("\"profit\":").append(m.getProfit()).append(",")
+                            .append("\"profitMargin\":").append(m.getProfitMargin()).append(",")
+                            .append("\"totalQuantity\":").append(m.getTotalQuantity())
+                            .append("}");
+                    if (i < resp.getMedicineProfits().size() - 1)
+                        json.append(",");
                 }
             }
             json.append("],");
@@ -81,11 +86,12 @@ public class ReportController extends BaseController implements HttpHandler {
                 for (int i = 0; i < resp.getVendorProfits().size(); i++) {
                     var v = resp.getVendorProfits().get(i);
                     json.append("{")
-                        .append("\"vendorId\":").append(v.getVendorId()).append(",")
-                        .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
-                        .append("\"totalPurchaseCost\":").append(v.getTotalPurchaseCost())
-                        .append("}");
-                    if (i < resp.getVendorProfits().size() - 1) json.append(",");
+                            .append("\"vendorId\":").append(v.getVendorId()).append(",")
+                            .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
+                            .append("\"totalPurchaseCost\":").append(v.getTotalPurchaseCost())
+                            .append("}");
+                    if (i < resp.getVendorProfits().size() - 1)
+                        json.append(",");
                 }
             }
             json.append("]");
@@ -102,7 +108,8 @@ public class ReportController extends BaseController implements HttpHandler {
 
     private Map<String, String> parseQuery(String query) {
         Map<String, String> map = new HashMap<>();
-        if (query == null || query.isEmpty()) return map;
+        if (query == null || query.isEmpty())
+            return map;
         for (String param : query.split("&")) {
             String[] pair = param.split("=");
             if (pair.length > 1) {

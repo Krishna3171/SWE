@@ -209,4 +209,23 @@ public class BatchDAO {
 
         return false;
     }
+
+    public boolean addBatchQuantity(Connection conn, int batchId, int quantityToAdd) {
+
+        String sql = """
+                    UPDATE Batch
+                    SET quantity = quantity + ?
+                    WHERE batch_id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, quantityToAdd);
+            ps.setInt(2, batchId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
 }

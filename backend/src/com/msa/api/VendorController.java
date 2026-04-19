@@ -48,15 +48,18 @@ public class VendorController extends BaseController implements HttpHandler {
             for (int i = 0; i < vendors.size(); i++) {
                 Vendor v = vendors.get(i);
                 sb.append("{")
-                  .append("\"vendorId\":").append(v.getVendorId()).append(",")
-                  .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
-                  .append("\"address\":\"").append(escapeJson(v.getAddress() != null ? v.getAddress() : "")).append("\",")
-                  .append("\"contactNo\":\"").append(escapeJson(v.getContactNo() != null ? v.getContactNo() : "")).append("\"")
-                  .append("}");
-                if (i < vendors.size() - 1) sb.append(",");
+                        .append("\"vendorId\":").append(v.getVendorId()).append(",")
+                        .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
+                        .append("\"address\":\"").append(escapeJson(v.getAddress() != null ? v.getAddress() : ""))
+                        .append("\",")
+                        .append("\"contactNo\":\"").append(escapeJson(v.getContactNo() != null ? v.getContactNo() : ""))
+                        .append("\"")
+                        .append("}");
+                if (i < vendors.size() - 1)
+                    sb.append(",");
             }
             sb.append("]");
-            
+
             writeJson(exchange, 200, sb.toString());
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error: " + escapeJson(e.getMessage()) + "\"}");
@@ -66,7 +69,10 @@ public class VendorController extends BaseController implements HttpHandler {
     private void handlePost(HttpExchange exchange) throws IOException {
         try {
             String body = readRequestBody(exchange, 16384);
-            
+            if (!requireRole(exchange, body, "admin")) {
+                return;
+            }
+
             String name = extractString(body, "name");
             String address = extractString(body, "address");
             String contact = extractString(body, "contact");
@@ -84,7 +90,8 @@ public class VendorController extends BaseController implements HttpHandler {
 
                 boolean success = vendorDAO.insertVendor(conn, vendor);
                 if (success) {
-                    writeJson(exchange, 201, "{\"message\":\"Vendor added\", \"vendorId\":" + vendor.getVendorId() + "}");
+                    writeJson(exchange, 201,
+                            "{\"message\":\"Vendor added\", \"vendorId\":" + vendor.getVendorId() + "}");
                 } else {
                     writeJson(exchange, 500, "{\"error\":\"Failed to create vendor\"}");
                 }
@@ -99,7 +106,8 @@ public class VendorController extends BaseController implements HttpHandler {
     private String extractString(String json, String key) {
         Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*\\\"(.*?)\\\"");
         Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) return matcher.group(1);
+        if (matcher.find())
+            return matcher.group(1);
         return null;
     }
 }

@@ -48,32 +48,36 @@ public class BatchController extends BaseController implements HttpHandler {
     }
 
     private void handleGetExpiredBatches(HttpExchange exchange) throws IOException {
+        if (!requireRole(exchange, null, "admin")) {
+            return;
+        }
         try (Connection conn = DBConnection.getConnection()) {
             List<Batch> expired = batchDAO.getExpiredBatches(conn);
             StringBuilder sb = new StringBuilder();
             sb.append("[");
-            
+
             for (int i = 0; i < expired.size(); i++) {
                 Batch b = expired.get(i);
                 Medicine m = medicineDAO.getMedicineById(conn, b.getMedicineId());
                 Vendor v = vendorDAO.getVendorById(conn, b.getVendorId());
-                
+
                 String mCode = m != null ? m.getMedicineCode() : "N/A";
                 String mName = m != null ? m.getTradeName() : "Unknown";
                 String vName = v != null ? "VND-" + v.getVendorId() + " - " + v.getVendorName() : "Unknown";
 
                 sb.append("{")
-                  .append("\"code\":\"").append(escapeJson(mCode)).append("\",")
-                  .append("\"name\":\"").append(escapeJson(mName)).append("\",")
-                  .append("\"date\":\"").append(b.getExpiryDate().toString()).append("\",")
-                  .append("\"batch\":\"").append(escapeJson(b.getBatchNumber())).append("\",")
-                  .append("\"qty\":").append(b.getQuantity()).append(",")
-                  .append("\"vendor\":\"").append(escapeJson(vName)).append("\"")
-                  .append("}");
-                if (i < expired.size() - 1) sb.append(",");
+                        .append("\"code\":\"").append(escapeJson(mCode)).append("\",")
+                        .append("\"name\":\"").append(escapeJson(mName)).append("\",")
+                        .append("\"date\":\"").append(b.getExpiryDate().toString()).append("\",")
+                        .append("\"batch\":\"").append(escapeJson(b.getBatchNumber())).append("\",")
+                        .append("\"qty\":").append(b.getQuantity()).append(",")
+                        .append("\"vendor\":\"").append(escapeJson(vName)).append("\"")
+                        .append("}");
+                if (i < expired.size() - 1)
+                    sb.append(",");
             }
             sb.append("]");
-            
+
             writeJson(exchange, 200, sb.toString());
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error: " + escapeJson(e.getMessage()) + "\"}");

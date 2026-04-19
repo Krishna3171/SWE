@@ -33,7 +33,7 @@ import static org.junit.Assert.*;
 public class PurchaseServiceTest {
 
     @Test
-    public void makePurchaseSucceedsAndCreatesInventoryWhenMissing() {
+    public void makePurchaseSucceedsAndCreatesPendingOrder() {
         TxnState txn = new TxnState();
         AtomicBoolean closed = new AtomicBoolean(false);
         Connection conn = stubConnection(txn, closed);
@@ -55,7 +55,8 @@ public class PurchaseServiceTest {
                 purchaseDAO, detailsDAO, batchDAO, inventoryDAO, provider);
 
         PurchaseRequest request = new PurchaseRequest(5, List.of(
-                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().plusDays(30).toString(), 4, new BigDecimal("2.50"))));
+                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().plusDays(30).toString(), 4,
+                        new BigDecimal("2.50"))));
 
         PurchaseResponse response = service.makePurchase(request);
 
@@ -66,7 +67,7 @@ public class PurchaseServiceTest {
         assertTrue(closed.get());
         assertEquals(1, detailsDAO.insertCalls);
         assertEquals(1, batchDAO.insertCalls);
-        assertEquals(1, inventoryDAO.createCalls);
+        assertEquals(0, inventoryDAO.createCalls);
     }
 
     @Test
@@ -79,10 +80,12 @@ public class PurchaseServiceTest {
         vendorDAO.vendor = null;
 
         PurchaseService service = new PurchaseService(vendorDAO, new StubMedicineDAO(), new StubVendorMedicineDAO(),
-                new StubPurchaseDAO(), new StubPurchaseDetailsDAO(), new StubBatchDAO(), new StubInventoryDAO(), provider);
+                new StubPurchaseDAO(), new StubPurchaseDetailsDAO(), new StubBatchDAO(), new StubInventoryDAO(),
+                provider);
 
         PurchaseRequest request = new PurchaseRequest(99, List.of(
-                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().plusDays(30).toString(), 1, new BigDecimal("2.00"))));
+                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().plusDays(30).toString(), 1,
+                        new BigDecimal("2.00"))));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> service.makePurchase(request));
         assertTrue(ex.getMessage().contains("Purchase failed"));
@@ -103,10 +106,12 @@ public class PurchaseServiceTest {
         vendorMedicineDAO.supplied = true;
 
         PurchaseService service = new PurchaseService(vendorDAO, medicineDAO, vendorMedicineDAO,
-                new StubPurchaseDAO(), new StubPurchaseDetailsDAO(), new StubBatchDAO(), new StubInventoryDAO(), provider);
+                new StubPurchaseDAO(), new StubPurchaseDetailsDAO(), new StubBatchDAO(), new StubInventoryDAO(),
+                provider);
 
         PurchaseRequest request = new PurchaseRequest(5, List.of(
-                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().minusDays(1).toString(), 2, new BigDecimal("1.25"))));
+                new PurchaseItemRequest("MED1", "B-1", LocalDate.now().minusDays(1).toString(), 2,
+                        new BigDecimal("1.25"))));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> service.makePurchase(request));
         assertTrue(ex.getMessage().contains("Purchase failed"));
@@ -116,14 +121,22 @@ public class PurchaseServiceTest {
     private static Connection stubConnection(TxnState txn, AtomicBoolean closed) {
         return (Connection) Proxy.newProxyInstance(
                 Connection.class.getClassLoader(),
-                new Class<?>[]{Connection.class},
+                new Class<?>[] { Connection.class },
                 (proxy, method, args) -> {
                     switch (method.getName()) {
-                        case "setAutoCommit": return null;
-                        case "commit": txn.committed = true; return null;
-                        case "rollback": txn.rolledBack = true; return null;
-                        case "close": closed.set(true); return null;
-                        default: return null;
+                        case "setAutoCommit":
+                            return null;
+                        case "commit":
+                            txn.committed = true;
+                            return null;
+                        case "rollback":
+                            txn.rolledBack = true;
+                            return null;
+                        case "close":
+                            closed.set(true);
+                            return null;
+                        default:
+                            return null;
                     }
                 });
     }
@@ -142,42 +155,74 @@ public class PurchaseServiceTest {
         return m;
     }
 
-    private static class TxnState { boolean committed; boolean rolledBack; }
+    private static class TxnState {
+        boolean committed;
+        boolean rolledBack;
+    }
 
     private static class StubVendorDAO extends VendorDAO {
         Vendor vendor;
+
         @Override
-        public Vendor getVendorById(Connection conn, int vendorId) { return vendor; }
+        public Vendor getVendorById(Connection conn, int vendorId) {
+            return vendor;
+        }
     }
+
     private static class StubMedicineDAO extends MedicineDAO {
         Map<String, Medicine> byCode = new HashMap<>();
+
         @Override
-        public Medicine getMedicineByCode(Connection conn, String medicineCode) { return byCode.get(medicineCode); }
+        public Medicine getMedicineByCode(Connection conn, String medicineCode) {
+            return byCode.get(medicineCode);
+        }
     }
+
     private static class StubVendorMedicineDAO extends VendorMedicineDAO {
         boolean supplied;
+
         @Override
-        public boolean existsMapping(Connection conn, int vendorId, int medicineId) { return supplied; }
+        public boolean existsMapping(Connection conn, int vendorId, int medicineId) {
+            return supplied;
+        }
     }
+
     private static class StubPurchaseDAO extends PurchaseDAO {
         @Override
-        public int insertPurchase(Connection conn, Purchase purchase) { return 7001; }
+        public int insertPurchase(Connection conn, Purchase purchase) {
+            return 7001;
+        }
     }
+
     private static class StubPurchaseDetailsDAO extends PurchaseDetailsDAO {
         int insertCalls;
+
         @Override
-        public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) { insertCalls++; return true; }
+        public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) {
+            insertCalls++;
+            return true;
+        }
     }
+
     private static class StubBatchDAO extends BatchDAO {
         int insertCalls;
+
         @Override
-        public int insertBatch(Connection conn, Batch batch) { insertCalls++; return 9001; }
+        public int insertBatch(Connection conn, Batch batch) {
+            insertCalls++;
+            return 9001;
+        }
     }
+
     private static class StubInventoryDAO extends InventoryDAO {
         boolean addQuantityResult = true;
         int createCalls;
+
         @Override
-        public boolean addQuantity(Connection conn, int medicineId, int amount) { return addQuantityResult; }
+        public boolean addQuantity(Connection conn, int medicineId, int amount) {
+            return addQuantityResult;
+        }
+
         @Override
         public boolean createInventoryForMedicine(Connection conn, int medicineId, int quantity, int reorderThreshold) {
             createCalls++;

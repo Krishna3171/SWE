@@ -155,6 +155,7 @@ public class PurchaseService {
                                         purchase);
 
                         // 2️⃣ Insert details, batches, inventory
+                        // Batches/details are created as pending inventory until explicit receive.
                         for (ResolvedPurchaseItem resolved : resolvedItems) {
 
                                 PurchaseItemRequest item = resolved.request;
@@ -164,7 +165,7 @@ public class PurchaseService {
                                 batch.setMedicineId(resolved.medicineId);
                                 batch.setBatchNumber(item.getBatchNumber());
                                 batch.setExpiryDate(LocalDate.parse(item.getExpiryDate()));
-                                batch.setQuantity(item.getQuantity());
+                                batch.setQuantity(0);
                                 batch.setVendorId(request.getVendorId());
 
                                 int batch_id = batchDAO.insertBatch(conn, batch);
@@ -175,24 +176,14 @@ public class PurchaseService {
                                                 item.getQuantity(),
                                                 item.getUnitPurchasePrice(),
                                                 batch_id, // will be set after batch insert
-                                                purchaseDate);
+                                                purchaseDate,
+                                                false);
 
                                 // b) Purchase_Details
                                 purchaseDetailsDAO.insertPurchaseDetail(
                                                 conn,
                                                 detail);
 
-                                // c) Inventory update (aggregate)
-                                boolean success = inventoryDAO.addQuantity(
-                                                conn,
-                                                resolved.medicineId,
-                                                item.getQuantity());
-
-                                if (!success) {
-                                        // inventory record doesn't exist, create it reorder threshold 0
-                                        inventoryDAO.createInventoryForMedicine(conn, resolved.medicineId,
-                                                        item.getQuantity(), 10);
-                                }
                         }
 
                         conn.commit(); // 🟢 COMMIT
@@ -200,7 +191,7 @@ public class PurchaseService {
                         return new PurchaseResponse(
                                         purchaseId,
                                         totalAmount,
-                                        "Purchase completed successfully");
+                                        "Purchase order created and pending receive");
 
                 } catch (Exception e) {
 
@@ -216,6 +207,85 @@ public class PurchaseService {
                                         "Purchase failed. Transaction rolled back.",
                                         e);
 
+                } finally {
+                        if (conn != null) {
+                                try {
+                                        conn.setAutoCommit(true);
+                                        conn.close();
+                                } catch (SQLException e) {
+                                        e.printStackTrace();
+                                }
+                        }
+                }
+        }
+
+        public PurchaseDetails receivePurchaseLine(int purchaseId, int batchId) {
+
+                Connection conn = null;
+
+                try {
+                        conn = connectionProvider.get();
+                        conn.setAutoCommit(false);
+
+                        PurchaseDetails detail = purchaseDetailsDAO.getPurchaseDetailByPurchaseAndBatch(conn,
+                                        purchaseId, batchId);
+                        if (detail == null) {
+                                throw new RuntimeException("Purchase line not found for purchaseId=" + purchaseId
+                                                + ", batchId=" + batchId);
+                        }
+
+                        if (detail.isReceived()) {
+                                throw new RuntimeException("Purchase line already received");
+                        }
+
+                        boolean batchUpdated = batchDAO.addBatchQuantity(conn, batchId, detail.getQuantity());
+                        if (!batchUpdated) {
+                                throw new RuntimeException("Failed to update batch quantity");
+                        }
+
+                        boolean inventoryUpdated = inventoryDAO.addQuantity(conn, detail.getMedicineId(),
+                                        detail.getQuantity());
+                        if (!inventoryUpdated) {
+                                inventoryDAO.createInventoryForMedicine(conn, detail.getMedicineId(),
+                                                detail.getQuantity(), 10);
+                        }
+
+                        boolean marked = purchaseDetailsDAO.markAsReceived(conn, purchaseId, batchId);
+                        if (!marked) {
+                                throw new RuntimeException("Failed to mark purchase line as received");
+                        }
+
+                        conn.commit();
+                        detail.setReceived(true);
+                        return detail;
+                } catch (Exception e) {
+                        if (conn != null) {
+                                try {
+                                        conn.rollback();
+                                } catch (SQLException ex) {
+                                        ex.printStackTrace();
+                                }
+                        }
+                        throw new RuntimeException("Receive failed. Transaction rolled back.", e);
+                } finally {
+                        if (conn != null) {
+                                try {
+                                        conn.setAutoCommit(true);
+                                        conn.close();
+                                } catch (SQLException e) {
+                                        e.printStackTrace();
+                                }
+                        }
+                }
+        }
+
+        public List<PurchaseDetails> getPendingPurchaseDetails() {
+                Connection conn = null;
+                try {
+                        conn = connectionProvider.get();
+                        return purchaseDetailsDAO.getPendingPurchaseDetails(conn);
+                } catch (Exception e) {
+                        throw new RuntimeException("Failed to get pending purchase details", e);
                 } finally {
                         if (conn != null) {
                                 try {
