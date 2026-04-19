@@ -11,6 +11,7 @@ public class Main {
 
     private static void startApiServer() {
         int port = ServerConfig.getPort();
+        validatePort(port);
 
         try {
             ApiServer apiServer = new ApiServer(port);
@@ -20,10 +21,20 @@ public class Main {
             System.out.println("Health endpoint: http://localhost:" + port + "/api/health");
             System.out.println("Login endpoint: http://localhost:" + port + "/api/users/login");
 
-            Runtime.getRuntime().addShutdownHook(new Thread(apiServer::stop));
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Shutting down API server...");
+                apiServer.stop();
+            }));
         } catch (Exception e) {
-            System.out.println("Failed to start API server: " + e.getMessage());
+            System.err.println("Failed to start API server: " + e.getMessage());
             e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private static void validatePort(int port) {
+        if (port < 1 || port > 65535) {
+            throw new IllegalArgumentException("Invalid port: " + port + ". Must be between 1 and 65535.");
         }
     }
 }

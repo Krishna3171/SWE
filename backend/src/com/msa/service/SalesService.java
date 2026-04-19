@@ -47,10 +47,13 @@ public class SalesService {
         // PUBLIC ENTRY POINT
         // ==========================
         public SaleResponse makeSale(SaleRequest request) {
-
                 Connection conn = null;
 
                 try {
+                        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
+                                throw new RuntimeException("Sale request has no items");
+                        }
+
                         conn = connectionProvider.get();
                         conn.setAutoCommit(false); // 🔴 TRANSACTION START
 
@@ -61,27 +64,25 @@ public class SalesService {
                         // PHASE 1 — VALIDATE & PLAN (FEFO)
                         // ==========================
                         for (SaleItemRequest item : request.getItems()) {
+                                if (item.getQuantity() <= 0) {
+                                        throw new RuntimeException("Invalid quantity for medicine: " + item.getMedicineCode());
+                                }
 
                                 Medicine medicine = medicineDAO.getMedicineByCode(
                                                 conn,
                                                 item.getMedicineCode());
 
                                 if (medicine == null) {
-                                        throw new RuntimeException(
-                                                        "Medicine not found: " + item.getMedicineCode());
+                                        throw new RuntimeException("Medicine not found: " + item.getMedicineCode());
                                 }
 
                                 int medicineId = medicine.getMedicineId();
-
                                 List<Batch> allBatches = batchDAO.getBatchesByMedicineId(conn, medicineId);
-
-                                List<BatchAllocationPlan> allocations = planBatchAllocation(allBatches,
-                                                item.getQuantity());
+                                List<BatchAllocationPlan> allocations = planBatchAllocation(allBatches, item.getQuantity());
 
                                 BigDecimal unitPrice = medicine.getUnitSellingPrice();
                                 BigDecimal lineTotal = unitPrice.multiply(
                                                 BigDecimal.valueOf(item.getQuantity()));
-
                                 totalAmount = totalAmount.add(lineTotal);
 
                                 salePlan.add(
@@ -99,41 +100,32 @@ public class SalesService {
                         // ==========================
                         LocalDate saleDate = LocalDate.now();
                         int saleId = salesDAO.insertSale(conn, saleDate, totalAmount);
+                        if (saleId <= 0) {
+                                throw new RuntimeException("Failed to create sale header");
+                        }
 
                         for (SaleLinePlan line : salePlan) {
-
-                                SalesDetails detail = new SalesDetails(
-                                                saleId,
-                                                line.getMedicineId(),
-                                                line.getQuantity(),
-                                                line.getUnitPrice(),
-                                                saleDate);
-
-                                salesDetailsDAO.insertSalesDetail(conn, detail);
+                                boolean detailInserted = salesDetailsDAO.insertSalesDetail(conn, new SalesDetails(
+                                                saleId, line.getMedicineId(), line.getQuantity(), line.getUnitPrice(), saleDate));
+                                if (!detailInserted) {
+                                        throw new RuntimeException("Failed to create sale line");
+                                }
 
                                 for (BatchAllocationPlan alloc : line.getBatchAllocationPlans()) {
-
                                         boolean updated = batchDAO.reduceBatchQuantity(
                                                         conn,
                                                         alloc.getBatchId(),
                                                         alloc.getQuantityToConsume());
-
                                         if (!updated) {
-                                                throw new RuntimeException(
-                                                                "Batch update failed for batch ID "
-                                                                                + alloc.getBatchId());
+                                                throw new RuntimeException("Batch update failed for batch ID " + alloc.getBatchId());
                                         }
-
-                                        // Delete only if the reduction left quantity at zero.
-                                        // No warning is needed when rows are not deleted because stock remains.
                                         batchDAO.deleteBatchIfEmpty(conn, alloc.getBatchId());
                                 }
 
-                                // update aggregate inventory
-                                inventoryDAO.reduceQuantity(
-                                                conn,
-                                                line.getMedicineId(),
-                                                line.getQuantity());
+                                boolean inventoryReduced = inventoryDAO.reduceQuantity(conn, line.getMedicineId(), line.getQuantity());
+                                if (!inventoryReduced) {
+                                        throw new RuntimeException("Inventory update failed for medicine ID " + line.getMedicineId());
+                                }
                         }
 
                         conn.commit(); // 🟢 COMMIT
