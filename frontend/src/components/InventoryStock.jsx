@@ -28,7 +28,7 @@ export default function InventoryStock() {
     item.tradeName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const lowStockCount = stockInfo.filter(i => i.currentStock < i.threshold).length;
+  const lowStockCount = stockInfo.filter(i => i.currentStock <= (i.dynamicThreshold ?? i.threshold)).length;
   const totalStock = stockInfo.reduce((s, i) => s + i.currentStock, 0);
 
   return (
@@ -83,7 +83,7 @@ export default function InventoryStock() {
           <tbody>
             {loading ? <tr><td colSpan="5" style={{textAlign:"center", padding: "40px"}}>Loading Database...</td></tr> : null}
             {!loading && filteredStock.map((item, idx) => {
-              const isLow = item.currentStock < item.threshold;
+              const isLow = item.currentStock <= (item.dynamicThreshold ?? item.threshold);
               return (
                 <tr key={idx} style={{ background: isLow ? "rgba(239, 68, 68, 0.05)" : "" }}>
                   <td style={{fontFamily: "monospace", color: "var(--accent)"}}>{item.code}</td>

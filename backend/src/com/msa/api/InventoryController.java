@@ -2,6 +2,7 @@ package com.msa.api;
 
 import com.msa.dao.InventoryDAO;
 import com.msa.dao.MedicineDAO;
+import com.msa.dao.SalesDetailsDAO;
 import com.msa.dao.VendorMedicineDAO;
 import com.msa.db.DBConnection;
 import com.msa.model.Inventory;
@@ -19,11 +20,13 @@ public class InventoryController extends BaseController implements HttpHandler {
     private final InventoryDAO inventoryDAO;
     private final MedicineDAO medicineDAO;
     private final VendorMedicineDAO vendorMedicineDAO;
+    private final SalesDetailsDAO salesDetailsDAO;
 
     public InventoryController() {
         this.inventoryDAO = new InventoryDAO();
         this.medicineDAO = new MedicineDAO();
         this.vendorMedicineDAO = new VendorMedicineDAO();
+        this.salesDetailsDAO = new SalesDetailsDAO();
     }
 
     @Override
@@ -64,14 +67,18 @@ public class InventoryController extends BaseController implements HttpHandler {
                 Medicine m = medicines.get(i);
                 Inventory inv = inventoryDAO.getInventoryByMedicineId(conn, m.getMedicineId());
                 int qty = inv != null ? inv.getQuantityAvailable() : 0;
-                int threshold = inv != null ? inv.getReorderThreshold() : 0;
+                int staticThreshold = inv != null ? inv.getReorderThreshold() : 0;
+
+                Integer avgSales = salesDetailsDAO.getAverageDailySalesLast7Days(conn, m.getMedicineId());
+                int dynamicThreshold = (avgSales != null && avgSales > 0) ? avgSales : staticThreshold;
 
                 sb.append("{")
                         .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
                         .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
                         .append("\"currentStock\":").append(qty).append(",")
-                        .append("\"threshold\":").append(threshold).append(",")
-                        .append("\"rack\":\"A-10\"") // Hardcoded rack since DB schema lacks it
+                        .append("\"threshold\":").append(staticThreshold).append(",")
+                        .append("\"dynamicThreshold\":").append(dynamicThreshold).append(",")
+                        .append("\"rack\":\"A-10\"")
                         .append("}");
                 if (i < medicines.size() - 1)
                     sb.append(",");
