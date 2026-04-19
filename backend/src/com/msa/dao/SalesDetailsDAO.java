@@ -1,7 +1,12 @@
 package com.msa.dao;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.msa.model.SalesDetails;
 
 public class SalesDetailsDAO {
 

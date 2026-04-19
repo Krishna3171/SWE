@@ -2,6 +2,7 @@ package com.msa;
 
 import com.msa.dao.InventoryDAO;
 import com.msa.dao.MedicineDAO;
+import com.msa.dao.SalesDetailsDAO;
 import com.msa.dao.VendorMedicineDAO;
 import com.msa.dto.ReorderReport;
 import com.msa.model.Inventory;
@@ -43,7 +44,7 @@ public class ReorderServiceTest {
         vendorMedicineDAO.byMedicine.put(1, List.of(7, 8));
         vendorMedicineDAO.byMedicine.put(2, List.of(9));
 
-        ReorderService service = new ReorderService(inventoryDAO, medicineDAO, vendorMedicineDAO, provider);
+        ReorderService service = new ReorderService(inventoryDAO, medicineDAO, vendorMedicineDAO, new StubSalesDetailsDAO(), provider);
         ReorderReport report = service.generateReorderReport();
 
         assertEquals(2, report.getTotalItems());
@@ -60,7 +61,7 @@ public class ReorderServiceTest {
         };
 
         ReorderService service = new ReorderService(
-                new StubInventoryDAO(), new StubMedicineDAO(), new StubVendorMedicineDAO(), provider);
+                new StubInventoryDAO(), new StubMedicineDAO(), new StubVendorMedicineDAO(), new StubSalesDetailsDAO(), provider);
 
         RuntimeException ex = assertThrows(RuntimeException.class, service::generateReorderReport);
         assertTrue(ex.getMessage().contains("Failed to generate reorder report"));
@@ -99,6 +100,13 @@ public class ReorderServiceTest {
         @Override
         public List<Integer> getVendorsForMedicine(Connection conn, int medicineId) {
             return byMedicine.getOrDefault(medicineId, List.of());
+        }
+    }
+
+    private static class StubSalesDetailsDAO extends SalesDetailsDAO {
+        @Override
+        public Integer getAverageDailySalesLast7Days(Connection conn, int medicineId) {
+            return null; // no sales data — service falls back to static threshold
         }
     }
 }
