@@ -15,6 +15,7 @@ public class ApiServer {
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         this.server.createContext("/api/health", new HealthController());
         this.server.createContext("/api/users/login", new UserController());
+        this.server.createContext("/api/users", new UserManagementController());
         this.server.createContext("/api/medicines", new MedicineController());
         this.server.createContext("/api/sales", new SalesController());
         this.server.createContext("/api/reports/profit", new ReportController());

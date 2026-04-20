@@ -8,7 +8,7 @@ import {
   AlertTriangle,
   BarChart3,
   LogOut,
-  Link2
+  Link2,
 } from "lucide-react";
 
 import MedicineManagement from "./MedicineManagement";
@@ -19,9 +19,10 @@ import OrderGeneration from "./OrderGeneration";
 import SalesBilling from "./SalesBilling";
 import ExpiredMedicines from "./ExpiredMedicines";
 import ReportsAnalytics from "./ReportsAnalytics";
+import UserManagement from "./UserManagement";
 
 const CASHIER_TABS = ["orders", "sales", "inventory"];
-const ADMIN_TABS = ["medicine", "inventory", "orders", "sales", "vendors", "links", "expired", "reports"];
+const ADMIN_TABS = ["medicine", "inventory", "orders", "sales", "vendors", "links", "users", "expired", "reports"];
 
 export default function DashboardView({ user, onLogout }) {
   const allowedTabs = user.role === "admin" ? ADMIN_TABS : CASHIER_TABS;
@@ -41,6 +42,7 @@ export default function DashboardView({ user, onLogout }) {
       case "inventory": return <InventoryStock />;
       case "vendors": return <VendorManagement />;
       case "links": return <VendorMedicineLink />;
+      case "users": return <UserManagement />;
       case "orders": return <OrderGeneration user={user} />;
       case "sales": return <SalesBilling />;
       case "expired": return <ExpiredMedicines />;
@@ -59,8 +61,8 @@ export default function DashboardView({ user, onLogout }) {
     </button>
   );
 
-  const dateStr = currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-  const timeStr = currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = currentTime.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }).toUpperCase();
+  const timeStr = currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="dashboard-layout">
@@ -85,7 +87,8 @@ export default function DashboardView({ user, onLogout }) {
               <NavButton id="orders" label="Orders" Icon={ClipboardList} />
               <NavButton id="sales" label="Sales/POS" Icon={ShoppingCart} />
               <NavButton id="vendors" label="Vendors" Icon={Users} />
-              <NavButton id="links" label="Vendor–Medicine" Icon={Link2} />
+              <NavButton id="links" label="Vendor-Medicine" Icon={Link2} />
+              <NavButton id="users" label="User Accounts" Icon={Users} />
               <NavButton id="expired" label="Expired Alerts" Icon={AlertTriangle} />
               <NavButton id="reports" label="Reports" Icon={BarChart3} />
             </>

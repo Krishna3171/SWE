@@ -5,6 +5,7 @@ import com.msa.db.DBConnection;
 import com.msa.model.AppUser;
 
 import java.sql.Connection;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class AuthService {
@@ -47,6 +48,42 @@ public class AuthService {
             return user;
         } catch (Exception e) {
             throw new RuntimeException("Login failed", e);
+        }
+    }
+
+    public List<AppUser> getAllUsers() {
+        try (Connection conn = connectionProvider.get()) {
+            List<AppUser> users = appUserDAO.getAllUsers(conn);
+            for (AppUser user : users) {
+                user.setPassword(null);
+            }
+            return users;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to fetch users", e);
+        }
+    }
+
+    public boolean createUser(AppUser user) {
+        try (Connection conn = connectionProvider.get()) {
+            return appUserDAO.insertUser(conn, user);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create user", e);
+        }
+    }
+
+    public boolean updateUser(AppUser user) {
+        try (Connection conn = connectionProvider.get()) {
+            return appUserDAO.updateUser(conn, user);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update user", e);
+        }
+    }
+
+    public boolean deleteUser(int userId) {
+        try (Connection conn = connectionProvider.get()) {
+            return appUserDAO.deleteUser(conn, userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete user", e);
         }
     }
 }
