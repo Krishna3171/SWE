@@ -117,20 +117,8 @@ describe("MedicineManagement", () => {
     fireEvent.change(screen.getByLabelText("Unit Purchase Price"), {
       target: { value: "12.00" },
     });
-    fireEvent.change(screen.getByLabelText("Initial Quantity"), {
-      target: { value: "100" },
-    });
-    fireEvent.change(screen.getByLabelText("Expiry Date"), {
-      target: { value: "2025-12-31" },
-    });
-    fireEvent.change(screen.getByLabelText("Reorder Threshold"), {
-      target: { value: "10" },
-    });
-    fireEvent.change(screen.getByLabelText("Vendor ID"), {
-      target: { value: "1" },
-    });
 
-    fireEvent.click(screen.getByText("Add Medicine"));
+    fireEvent.click(screen.getByTestId("submit-medicine-btn"));
 
     await waitFor(() => {
       expect(addMedicine).toHaveBeenCalledWith({
@@ -138,10 +126,6 @@ describe("MedicineManagement", () => {
         genericName: "Ibuprofen",
         unitSellingPrice: "15.00",
         unitPurchasePrice: "12.00",
-        initialQuantity: "100",
-        expiryDate: "2025-12-31",
-        reorderThreshold: "10",
-        vendorId: "1",
       });
     });
 

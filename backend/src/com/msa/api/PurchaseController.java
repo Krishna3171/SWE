@@ -68,7 +68,7 @@ public class PurchaseController extends BaseController implements HttpHandler {
                 return;
             }
 
-            if (!requireRole(exchange, body, "admin")) {
+            if (!requireAnyRole(exchange, body, "cashier", "admin")) {
                 return;
             }
 

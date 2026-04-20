@@ -2,10 +2,9 @@ const { Builder, By, until } = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 const fs = require('fs');
 const path = require('path');
-const http = require('http');
 
 
-jest.setTimeout(30000); // Increase timeout for Selenium tests
+jest.setTimeout(90000); // Selenium tests need time for browser startup + login + interactions
 
 describe('Pharmacy Management System UI Tests', () => {
   let driver;
@@ -23,11 +22,11 @@ describe('Pharmacy Management System UI Tests', () => {
     const attemptLogin = async () => {
       const usernameInput = await driver.wait(until.elementLocated(By.id('username')), 10000);
       await usernameInput.clear();
-      await usernameInput.sendKeys('admin123');
+      await usernameInput.sendKeys('admin');
 
       const passwordInput = await driver.wait(until.elementLocated(By.id('password')), 5000);
       await passwordInput.clear();
-      await passwordInput.sendKeys('admin');
+      await passwordInput.sendKeys('admin123');
 
       const signInButton = await driver.findElement(By.css('button[type="submit"]'));
       await signInButton.click();
@@ -80,7 +79,7 @@ describe('Pharmacy Management System UI Tests', () => {
     const title = await driver.getTitle();
     expect(title).toContain('MSA Portal');
 
-    const heading = await driver.findElement(By.tagName('h1'));
+    const heading = await driver.findElement(By.css('h1'));
     const headingText = await heading.getText();
     expect(headingText).toBe('MSA Portal');
   });
@@ -233,7 +232,7 @@ describe('Pharmacy Management System UI Tests', () => {
     const ordersLink = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Orders')]")), 5000);
     await ordersLink.click();
 
-    await driver.wait(until.elementLocated(By.xpath("//h2[text()='Auto-Generated Orders']")), 5000);
+    await driver.wait(until.elementLocated(By.xpath("//h2[text()='Purchase Order List']")), 5000);
 
     const printSummaryBtn = await driver.wait(until.elementLocated(By.xpath("//button[contains(., 'Print Order Summary')]")), 5000);
     expect(printSummaryBtn).toBeTruthy();
