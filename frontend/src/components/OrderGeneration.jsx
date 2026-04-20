@@ -18,8 +18,7 @@ function recordDates(codes) {
   return stored;
 }
 
-export default function OrderGeneration({ user }) {
-  const isAdmin = user?.role === "admin";
+export default function OrderGeneration() {
 
   const [lowStock, setLowStock] = useState([]);
   const [lowStockError, setLowStockError] = useState(null);
@@ -150,16 +149,16 @@ export default function OrderGeneration({ user }) {
               <th>To Order</th>
               <th>Vendor</th>
               <th>Date Added</th>
-              {isAdmin && <th>Action</th>}
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: "center", padding: "40px" }}>Loading...</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", padding: "40px" }}>Loading...</td></tr>
             ) : lowStockError ? (
-              <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: "center", padding: "40px", color: "var(--danger)" }}>{lowStockError}</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "var(--danger)" }}>{lowStockError}</td></tr>
             ) : lowStock.length === 0 ? (
-              <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: "center", padding: "40px" }}>All stock levels are adequate.</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: "center", padding: "40px" }}>All stock levels are adequate.</td></tr>
             ) : lowStock.map((item, idx) => (
               <tr key={idx}>
                 <td style={{ fontFamily: "monospace", color: "var(--accent)" }}>{item.code}</td>
@@ -168,13 +167,11 @@ export default function OrderGeneration({ user }) {
                 <td style={{ fontWeight: 700 }}>{item.toOrder} units</td>
                 <td>{item.vendor}</td>
                 <td style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>{item.dateAdded}</td>
-                {isAdmin && (
-                  <td>
-                    <button className="btn-primary" style={{ padding: "4px 12px", fontSize: "0.8rem" }} onClick={() => openReceiveModal(item)}>
-                      Receive Supply
-                    </button>
-                  </td>
-                )}
+                <td>
+                  <button className="btn-primary" style={{ padding: "4px 12px", fontSize: "0.8rem" }} onClick={() => openReceiveModal(item)}>
+                    Receive Supply
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
