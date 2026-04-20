@@ -24,44 +24,53 @@ The Pharmacy Management System follows a layered architecture:
 ## Setup Instructions
 
 ### Prerequisites
+
 - **Java JDK** (Version 17+ recommended)
 - **Node.js** (Version 16+ recommended for React)
 - **Git** (to clone the repo)
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/Krishna3171/SWE.git
 cd SWE
 ```
 
 ### 2. Configure Database
-The backend currently connects to a remote Supabase PostgreSQL database automatically via `backend/src/com/msa/db/DBConnection.java`. 
+
+The backend currently connects to a remote Supabase PostgreSQL database automatically via `backend/src/com/msa/db/DBConnection.java`.
 There is **no localized database setup required** to test this POC.
 
 ### 3. Start the Java Backend
+
 Open a terminal inside the `/backend` folder.
 
 **On Mac / Linux (Terminal / zsh / bash):**
+
 ```bash
 cd backend
 mkdir -p out
 javac -cp "lib/*" -d out $(find src -name "*.java")
 java -cp "out:lib/*" com.msa.main.Main
 ```
+
 > **Note:** If you get a `java.net.BindException: Address already in use` error, it means the backend is already running. You can kill the old instance by running: `lsof -ti :8080 | xargs kill -9`
 
 **On Windows (PowerShell):**
+
 ```powershell
 cd backend
 mkdir out -Force
 javac -cp "lib/*" -d out (Get-ChildItem -Path src -Recurse -Filter *.java | ForEach-Object { $_.FullName })
 java -cp "out;lib/*" com.msa.main.Main
 ```
+
 > **Note:** If you get a `java.net.BindException: Address already in use` error, you can kill the old instance by running: `Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess -Force`
 
 You should see: `MSA API server started on port 8080`. Leave this terminal open.
 
 ### 4. Start the React Frontend
+
 Open a **new** separate terminal window inside the `/frontend` folder.
 
 ```bash
@@ -78,7 +87,6 @@ The application will automatically open in your browser at `http://localhost:300
   1.  Go to the "Inventory" section in the UI.
   2.  Click on "Add Product" and fill in the details.
   3.  Save the product to update the inventory.
-
 
 - **Generating an Invoice**:
   1.  Go to the "Billing" section.
