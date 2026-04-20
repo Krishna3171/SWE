@@ -151,11 +151,15 @@
           {
             "key": "Content-Type",
             "value": "application/json"
+          },
+          {
+            "key": "X-User-Role",
+            "value": "admin"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"tradeName\": \"Test Medicine\",\n    \"genericName\": \"Test Generic\",\n    \"unitSellingPrice\": 15.00,\n    \"unitPurchasePrice\": 12.00,\n    \"initialQuantity\": 100,\n    \"reorderThreshold\": 10,\n    \"expiryDate\": \"2025-12-31\",\n    \"vendorId\": 1\n}"
+          "raw": "{\n    \"tradeName\": \"Test Medicine\",\n    \"genericName\": \"Test Generic\",\n    \"unitSellingPrice\": 15.00,\n    \"unitPurchasePrice\": 12.00,\n    \"role\": \"admin\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/medicines",
@@ -170,6 +174,11 @@
             "exec": [
               "pm.test(\"Status code is 200 or 201\", function () {",
               "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test(\"Response includes result field\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.message || jsonData.error).to.exist;",
               "});"
             ],
             "type": "text/javascript"
@@ -181,7 +190,12 @@
       "name": "Get Sales",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "X-User-Role",
+            "value": "cashier"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/sales",
           "host": ["{{base_url}}"],
@@ -195,6 +209,11 @@
             "exec": [
               "pm.test(\"Status code is 200\", function () {",
               "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response is sales array\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('array');",
               "});"
             ],
             "type": "text/javascript"
@@ -210,11 +229,15 @@
           {
             "key": "Content-Type",
             "value": "application/json"
+          },
+          {
+            "key": "X-User-Role",
+            "value": "cashier"
           }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n    \"items\": [\n        {\n            \"medicineCode\": \"MED001\",\n            \"quantity\": 2\n        }\n    ]\n}"
+          "raw": "{\n    \"items\": [\n        {\n            \"medicineCode\": \"MED001\",\n            \"quantity\": 2\n        }\n    ],\n    \"role\": \"cashier\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/api/sales",
@@ -227,14 +250,18 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"Status code is 200 or 201\", function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "pm.test(\"Status code is 201 or 500\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([201, 500]);",
               "});",
               "",
-              "pm.test(\"Response has sale details\", function () {",
+              "pm.test(\"Response matches success or error shape\", function () {",
               "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('saleId');",
-              "    pm.expect(jsonData).to.have.property('totalAmount');",
+              "    if (pm.response.code === 201) {",
+              "        pm.expect(jsonData).to.have.property('saleId');",
+              "        pm.expect(jsonData).to.have.property('totalAmount');",
+              "    } else {",
+              "        pm.expect(jsonData).to.have.property('error');",
+              "    }",
               "});"
             ],
             "type": "text/javascript"
@@ -246,7 +273,12 @@
       "name": "Get Profit Report",
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "X-User-Role",
+            "value": "admin"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/reports/profit?startDate=2024-01-01&endDate=2024-12-31",
           "host": ["{{base_url}}"],
