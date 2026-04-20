@@ -23,7 +23,7 @@ public class VendorController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        addCorsHeaders(exchange, "GET, POST");
+        addCorsHeaders(exchange, "GET, POST, PUT");
 
         if (isPreflight(exchange)) {
             return;
@@ -35,6 +35,8 @@ public class VendorController extends BaseController implements HttpHandler {
             handleGet(exchange);
         } else if ("POST".equalsIgnoreCase(method)) {
             handlePost(exchange);
+        } else if ("PUT".equalsIgnoreCase(method)) {
+            handlePut(exchange);
         } else {
             writeJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
         }
@@ -101,6 +103,51 @@ public class VendorController extends BaseController implements HttpHandler {
         } catch (Exception e) {
             writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
+    }
+
+    private void handlePut(HttpExchange exchange) throws IOException {
+        try {
+            String body = readRequestBody(exchange, 16384);
+            if (!requireRole(exchange, body, "admin")) {
+                return;
+            }
+
+            int vendorId = extractInt(body, "vendorId");
+            String name = extractString(body, "name");
+            String address = extractString(body, "address");
+            String contact = extractString(body, "contact");
+
+            if (vendorId == -1 || name == null) {
+                writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
+                return;
+            }
+
+            try (Connection conn = DBConnection.getConnection()) {
+                Vendor vendor = new Vendor();
+                vendor.setVendorId(vendorId);
+                vendor.setVendorName(name);
+                vendor.setAddress(address);
+                vendor.setContactNo(contact);
+
+                boolean updated = vendorDAO.updateVendor(conn, vendor);
+                if (updated) {
+                    writeJson(exchange, 200, "{\"message\":\"Vendor updated successfully\"}");
+                } else {
+                    writeJson(exchange, 404, "{\"error\":\"Vendor not found or update failed\"}");
+                }
+            } catch (SQLException e) {
+                writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            }
+        } catch (Exception e) {
+            writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+        }
+    }
+
+    private int extractInt(String json, String key) {
+        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*([0-9]+)");
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) return Integer.parseInt(matcher.group(1));
+        return -1;
     }
 
     private String extractString(String json, String key) {

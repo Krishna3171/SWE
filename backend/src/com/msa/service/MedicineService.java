@@ -40,6 +40,14 @@ public class MedicineService {
         }
     }
 
+    public boolean updateMedicine(Medicine medicine) {
+        try (Connection conn = connectionProvider.get()) {
+            return medicineDAO.updateMedicine(conn, medicine);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to update medicine", e);
+        }
+    }
+
     public boolean addMedicine(Medicine medicine) {
         try (Connection conn = connectionProvider.get()) {
             conn.setAutoCommit(false);

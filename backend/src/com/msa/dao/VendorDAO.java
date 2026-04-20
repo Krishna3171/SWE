@@ -42,6 +42,18 @@ public class VendorDAO {
         return false;
     }
 
+    // UPDATE
+    public boolean updateVendor(Connection conn, Vendor vendor) throws SQLException {
+        String sql = "UPDATE Vendor SET vendor_name = ?, address = ?, contact_no = ? WHERE vendor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, vendor.getVendorName());
+            ps.setString(2, vendor.getAddress());
+            ps.setString(3, vendor.getContactNo());
+            ps.setInt(4, vendor.getVendorId());
+            return ps.executeUpdate() > 0;
+        }
+    }
+
     // GET BY ID
     public Vendor getVendorById(Connection conn, int vendorId) {
 

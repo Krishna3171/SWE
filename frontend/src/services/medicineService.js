@@ -29,3 +29,17 @@ export const addMedicine = async (medicineData) => {
   const text = await response.text();
   return text ? JSON.parse(text) : null;
 };
+
+export const updateMedicine = async (medicineData) => {
+  const response = await fetch(`${API_BASE_URL}/medicines`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    body: JSON.stringify(medicineData),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to update medicine");
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+};

@@ -22,7 +22,7 @@ public class MedicineController extends BaseController implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        addCorsHeaders(exchange, "GET, POST");
+        addCorsHeaders(exchange, "GET, POST, PUT");
 
         if (isPreflight(exchange)) {
             return;
@@ -35,6 +35,8 @@ public class MedicineController extends BaseController implements HttpHandler {
                 handleGet(exchange);
             } else if ("POST".equalsIgnoreCase(method)) {
                 handlePost(exchange);
+            } else if ("PUT".equalsIgnoreCase(method)) {
+                handlePut(exchange);
             } else {
                 writeJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
             }
@@ -94,6 +96,38 @@ public class MedicineController extends BaseController implements HttpHandler {
                     "{\"message\":\"Medicine added\",\"medicineCode\":\"" + escapeJson(m.getMedicineCode()) + "\"}");
         } else {
             writeJson(exchange, 400, "{\"error\":\"Failed to add medicine\"}");
+        }
+    }
+
+    private void handlePut(HttpExchange exchange) throws IOException {
+        String body = readRequestBody(exchange, MAX_REQUEST_BYTES);
+        if (!requireRole(exchange, body, "admin")) {
+            return;
+        }
+
+        String medicineCode = extractJsonValue(body, "medicineCode");
+        String tradeName = extractJsonValue(body, "tradeName");
+        String genericName = extractJsonValue(body, "genericName");
+        String spStr = extractJsonValue(body, "unitSellingPrice");
+        String ppStr = extractJsonValue(body, "unitPurchasePrice");
+
+        if (isBlank(medicineCode) || isBlank(tradeName) || isBlank(genericName) || isBlank(spStr) || isBlank(ppStr)) {
+            writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
+            return;
+        }
+
+        Medicine m = new Medicine();
+        m.setMedicineCode(medicineCode);
+        m.setTradeName(tradeName);
+        m.setGenericName(genericName);
+        m.setUnitSellingPrice(new BigDecimal(spStr));
+        m.setUnitPurchasePrice(new BigDecimal(ppStr));
+
+        boolean updated = medicineService.updateMedicine(m);
+        if (updated) {
+            writeJson(exchange, 200, "{\"message\":\"Medicine updated successfully\"}");
+        } else {
+            writeJson(exchange, 404, "{\"error\":\"Medicine not found or update failed\"}");
         }
     }
 

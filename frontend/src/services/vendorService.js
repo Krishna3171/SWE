@@ -23,3 +23,17 @@ export const createVendor = async (vendorData) => {
   }
   return response.json();
 };
+
+export const updateVendor = async (vendorData) => {
+  const response = await fetch(`${API_BASE}/vendors`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(vendorData)
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update vendor');
+  }
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+};
