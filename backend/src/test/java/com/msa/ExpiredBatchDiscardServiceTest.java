@@ -7,7 +7,7 @@ import com.msa.dto.ExpiredBatchReport;
 import com.msa.model.Batch;
 import com.msa.model.Medicine;
 import com.msa.service.ExpiredBatchDiscardService;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
 public class ExpiredBatchDiscardServiceTest {
 
@@ -38,7 +38,8 @@ public class ExpiredBatchDiscardServiceTest {
         medicineDAO.byId.put(1, med(1, "MED1"));
         medicineDAO.byId.put(2, null);
 
-        ExpiredBatchDiscardService service = new ExpiredBatchDiscardService(batchDAO, inventoryDAO, medicineDAO, provider);
+        ExpiredBatchDiscardService service = new ExpiredBatchDiscardService(batchDAO, inventoryDAO, medicineDAO,
+                provider);
         ExpiredBatchReport report = service.discardExpiredBatches();
 
         assertEquals(2, report.getTotalBatchesDiscarded());
@@ -89,37 +90,59 @@ public class ExpiredBatchDiscardServiceTest {
     private static Connection stubConnection(TxnState txn, AtomicBoolean closed) {
         return (Connection) Proxy.newProxyInstance(
                 Connection.class.getClassLoader(),
-                new Class<?>[]{Connection.class},
+                new Class<?>[] { Connection.class },
                 (proxy, method, args) -> {
                     switch (method.getName()) {
-                        case "setAutoCommit": return null;
-                        case "commit": txn.committed = true; return null;
-                        case "rollback": txn.rolledBack = true; return null;
-                        case "close": closed.set(true); return null;
-                        default: return null;
+                        case "setAutoCommit":
+                            return null;
+                        case "commit":
+                            txn.committed = true;
+                            return null;
+                        case "rollback":
+                            txn.rolledBack = true;
+                            return null;
+                        case "close":
+                            closed.set(true);
+                            return null;
+                        default:
+                            return null;
                     }
                 });
     }
 
-    private static class TxnState { boolean committed; boolean rolledBack; }
+    private static class TxnState {
+        boolean committed;
+        boolean rolledBack;
+    }
 
     private static class StubBatchDAO extends BatchDAO {
         List<Batch> expired = List.of();
         boolean failReduce;
+
         @Override
-        public List<Batch> getExpiredBatches(Connection conn) { return expired; }
+        public List<Batch> getExpiredBatches(Connection conn) {
+            return expired;
+        }
+
         @Override
-        public boolean reduceBatchQuantity(Connection conn, int batchId, int quantityToReduce) { return !failReduce; }
+        public boolean reduceBatchQuantity(Connection conn, int batchId, int quantityToReduce) {
+            return !failReduce;
+        }
     }
 
     private static class StubInventoryDAO extends InventoryDAO {
         @Override
-        public boolean reduceQuantity(Connection conn, int medicineId, int amount) { return true; }
+        public boolean reduceQuantity(Connection conn, int medicineId, int amount) {
+            return true;
+        }
     }
 
     private static class StubMedicineDAO extends MedicineDAO {
         Map<Integer, Medicine> byId = new HashMap<>();
+
         @Override
-        public Medicine getMedicineById(Connection conn, int medicineId) { return byId.get(medicineId); }
+        public Medicine getMedicineById(Connection conn, int medicineId) {
+            return byId.get(medicineId);
+        }
     }
 }
