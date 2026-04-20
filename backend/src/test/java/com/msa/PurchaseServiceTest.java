@@ -67,7 +67,115 @@ public class PurchaseServiceTest {
         assertTrue(closed.get());
         assertEquals(1, detailsDAO.insertCalls);
         assertEquals(1, batchDAO.insertCalls);
+        assertNotNull(detailsDAO.lastInsertedDetail);
+        assertFalse(detailsDAO.lastInsertedDetail.isReceived());
+        assertEquals(0, batchDAO.lastInsertedBatch.getQuantity());
         assertEquals(0, inventoryDAO.createCalls);
+    }
+
+    @Test
+    public void receivePurchaseLineSucceedsAndMarksReceived() {
+        TxnState txn = new TxnState();
+        AtomicBoolean closed = new AtomicBoolean(false);
+        Connection conn = stubConnection(txn, closed);
+        Supplier<Connection> provider = () -> conn;
+
+        StubPurchaseDetailsDAO detailsDAO = new StubPurchaseDetailsDAO();
+        detailsDAO.detailByPurchaseAndBatch = new PurchaseDetails(
+                7001,
+                1,
+                6,
+                new BigDecimal("2.25"),
+                9001,
+                LocalDate.now(),
+                false);
+
+        StubBatchDAO batchDAO = new StubBatchDAO();
+        batchDAO.addBatchQuantityResult = true;
+
+        StubInventoryDAO inventoryDAO = new StubInventoryDAO();
+        inventoryDAO.addQuantityResult = true;
+
+        PurchaseService service = new PurchaseService(
+                new StubVendorDAO(),
+                new StubMedicineDAO(),
+                new StubVendorMedicineDAO(),
+                new StubPurchaseDAO(),
+                detailsDAO,
+                batchDAO,
+                inventoryDAO,
+                provider);
+
+        PurchaseDetails received = service.receivePurchaseLine(7001, 9001);
+
+        assertTrue(received.isReceived());
+        assertTrue(txn.committed);
+        assertFalse(txn.rolledBack);
+        assertTrue(closed.get());
+        assertEquals(1, detailsDAO.markAsReceivedCalls);
+        assertEquals(1, batchDAO.addBatchQuantityCalls);
+        assertEquals(0, inventoryDAO.createCalls);
+    }
+
+    @Test
+    public void receivePurchaseLineRollsBackWhenAlreadyReceived() {
+        TxnState txn = new TxnState();
+        Connection conn = stubConnection(txn, new AtomicBoolean(false));
+        Supplier<Connection> provider = () -> conn;
+
+        StubPurchaseDetailsDAO detailsDAO = new StubPurchaseDetailsDAO();
+        detailsDAO.detailByPurchaseAndBatch = new PurchaseDetails(
+                7001,
+                1,
+                6,
+                new BigDecimal("2.25"),
+                9001,
+                LocalDate.now(),
+                true);
+
+        PurchaseService service = new PurchaseService(
+                new StubVendorDAO(),
+                new StubMedicineDAO(),
+                new StubVendorMedicineDAO(),
+                new StubPurchaseDAO(),
+                detailsDAO,
+                new StubBatchDAO(),
+                new StubInventoryDAO(),
+                provider);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.receivePurchaseLine(7001, 9001));
+
+        assertTrue(ex.getMessage().contains("Receive failed"));
+        assertTrue(txn.rolledBack);
+    }
+
+    @Test
+    public void getPendingPurchaseDetailsReturnsDaoResults() {
+        TxnState txn = new TxnState();
+        AtomicBoolean closed = new AtomicBoolean(false);
+        Connection conn = stubConnection(txn, closed);
+        Supplier<Connection> provider = () -> conn;
+
+        StubPurchaseDetailsDAO detailsDAO = new StubPurchaseDetailsDAO();
+        detailsDAO.pending = List.of(
+                new PurchaseDetails(1, 1, 2, new BigDecimal("1.00"), 11, LocalDate.now(), false),
+                new PurchaseDetails(2, 2, 3, new BigDecimal("2.00"), 12, LocalDate.now(), false));
+
+        PurchaseService service = new PurchaseService(
+                new StubVendorDAO(),
+                new StubMedicineDAO(),
+                new StubVendorMedicineDAO(),
+                new StubPurchaseDAO(),
+                detailsDAO,
+                new StubBatchDAO(),
+                new StubInventoryDAO(),
+                provider);
+
+        List<PurchaseDetails> pending = service.getPendingPurchaseDetails();
+
+        assertEquals(2, pending.size());
+        assertFalse(pending.get(0).isReceived());
+        assertTrue(closed.get());
     }
 
     @Test
@@ -196,21 +304,52 @@ public class PurchaseServiceTest {
 
     private static class StubPurchaseDetailsDAO extends PurchaseDetailsDAO {
         int insertCalls;
+        int markAsReceivedCalls;
+        PurchaseDetails lastInsertedDetail;
+        PurchaseDetails detailByPurchaseAndBatch;
+        List<PurchaseDetails> pending = List.of();
 
         @Override
         public boolean insertPurchaseDetail(Connection conn, PurchaseDetails detail) {
             insertCalls++;
+            lastInsertedDetail = detail;
             return true;
+        }
+
+        @Override
+        public PurchaseDetails getPurchaseDetailByPurchaseAndBatch(Connection conn, int purchaseId, int batchId) {
+            return detailByPurchaseAndBatch;
+        }
+
+        @Override
+        public boolean markAsReceived(Connection conn, int purchaseId, int batchId) {
+            markAsReceivedCalls++;
+            return true;
+        }
+
+        @Override
+        public List<PurchaseDetails> getPendingPurchaseDetails(Connection conn) {
+            return pending;
         }
     }
 
     private static class StubBatchDAO extends BatchDAO {
         int insertCalls;
+        int addBatchQuantityCalls;
+        boolean addBatchQuantityResult = true;
+        Batch lastInsertedBatch;
 
         @Override
         public int insertBatch(Connection conn, Batch batch) {
             insertCalls++;
+            lastInsertedBatch = batch;
             return 9001;
+        }
+
+        @Override
+        public boolean addBatchQuantity(Connection conn, int batchId, int quantityToAdd) {
+            addBatchQuantityCalls++;
+            return addBatchQuantityResult;
         }
     }
 

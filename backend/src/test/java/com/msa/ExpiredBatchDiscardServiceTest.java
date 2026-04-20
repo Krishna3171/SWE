@@ -7,7 +7,7 @@ import com.msa.dto.ExpiredBatchReport;
 import com.msa.model.Batch;
 import com.msa.model.Medicine;
 import com.msa.service.ExpiredBatchDiscardService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ExpiredBatchDiscardServiceTest {
 
