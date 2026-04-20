@@ -8,8 +8,7 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class MedicineController extends BaseController implements HttpHandler {
 
@@ -50,23 +49,7 @@ public class MedicineController extends BaseController implements HttpHandler {
 
     private void handleGet(HttpExchange exchange) throws IOException {
         List<Medicine> list = medicineService.getAllMedicines();
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < list.size(); i++) {
-            Medicine m = list.get(i);
-            json.append("{")
-                    .append("\"medicineId\":").append(m.getMedicineId()).append(",")
-                    .append("\"medicineCode\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                    .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                    .append("\"genericName\":\"").append(escapeJson(m.getGenericName())).append("\",")
-                    .append("\"unitSellingPrice\":").append(m.getUnitSellingPrice()).append(",")
-                    .append("\"unitPurchasePrice\":").append(m.getUnitPurchasePrice())
-                    .append("}");
-            if (i < list.size() - 1) {
-                json.append(",");
-            }
-        }
-        json.append("]");
-        writeJson(exchange, 200, json.toString());
+        writeJsonObject(exchange, 200, list);
     }
 
     private void handlePost(HttpExchange exchange) throws IOException {
@@ -75,12 +58,13 @@ public class MedicineController extends BaseController implements HttpHandler {
             return;
         }
 
-        String tradeName = extractJsonValue(body, "tradeName");
-        String genericName = extractJsonValue(body, "genericName");
-        String spStr = extractJsonValue(body, "unitSellingPrice");
-        String ppStr = extractJsonValue(body, "unitPurchasePrice");
+        var node = parseJson(body);
+        String tradeName = node.path("tradeName").asText(null);
+        String genericName = node.path("genericName").asText(null);
+        String spStr = node.path("unitSellingPrice").asText(null);
+        String ppStr = node.path("unitPurchasePrice").asText(null);
         if (isBlank(tradeName) || isBlank(genericName) || isBlank(spStr) || isBlank(ppStr)) {
-            writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "Missing required fields"));
             return;
         }
 
@@ -92,10 +76,11 @@ public class MedicineController extends BaseController implements HttpHandler {
 
         boolean added = medicineService.addMedicine(m);
         if (added) {
-            writeJson(exchange, 201,
-                    "{\"message\":\"Medicine added\",\"medicineCode\":\"" + escapeJson(m.getMedicineCode()) + "\"}");
+            writeJsonObject(exchange, 201, Map.of(
+                    "message", "Medicine added",
+                    "medicineCode", m.getMedicineCode()));
         } else {
-            writeJson(exchange, 400, "{\"error\":\"Failed to add medicine\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "Failed to add medicine"));
         }
     }
 
@@ -105,14 +90,15 @@ public class MedicineController extends BaseController implements HttpHandler {
             return;
         }
 
-        String medicineCode = extractJsonValue(body, "medicineCode");
-        String tradeName = extractJsonValue(body, "tradeName");
-        String genericName = extractJsonValue(body, "genericName");
-        String spStr = extractJsonValue(body, "unitSellingPrice");
-        String ppStr = extractJsonValue(body, "unitPurchasePrice");
+        var node = parseJson(body);
+        String medicineCode = node.path("medicineCode").asText(null);
+        String tradeName = node.path("tradeName").asText(null);
+        String genericName = node.path("genericName").asText(null);
+        String spStr = node.path("unitSellingPrice").asText(null);
+        String ppStr = node.path("unitPurchasePrice").asText(null);
 
         if (isBlank(medicineCode) || isBlank(tradeName) || isBlank(genericName) || isBlank(spStr) || isBlank(ppStr)) {
-            writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "Missing required fields"));
             return;
         }
 
@@ -125,20 +111,10 @@ public class MedicineController extends BaseController implements HttpHandler {
 
         boolean updated = medicineService.updateMedicine(m);
         if (updated) {
-            writeJson(exchange, 200, "{\"message\":\"Medicine updated successfully\"}");
+            writeJsonObject(exchange, 200, Map.of("message", "Medicine updated successfully"));
         } else {
-            writeJson(exchange, 404, "{\"error\":\"Medicine not found or update failed\"}");
+            writeJsonObject(exchange, 404, Map.of("error", "Medicine not found or update failed"));
         }
-    }
-
-    private static String extractJsonValue(String body, String key) {
-        String patternText = "\\\"" + Pattern.quote(key) + "\\\"\\s*:\\s*(?:\\\"([^\\\"]*)\\\"|([0-9.]+))";
-        Pattern pattern = Pattern.compile(patternText);
-        Matcher matcher = pattern.matcher(body);
-        if (matcher.find()) {
-            return matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
-        }
-        return null;
     }
 
     private static boolean isBlank(String value) {

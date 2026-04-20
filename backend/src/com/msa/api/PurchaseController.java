@@ -9,11 +9,10 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class PurchaseController extends BaseController implements HttpHandler {
 
@@ -72,123 +71,91 @@ public class PurchaseController extends BaseController implements HttpHandler {
                 return;
             }
 
-            // Expected simple JSON: {"vendorId": 1, "items": [{"medicineCode":"MED1",
-            // "batchNumber": "B-1", "expiryDate": "2024-12-01", "quantity": 100,
-            // "unitPurchasePrice": 5.5}]}
-            int vendorId = extractInt(body, "vendorId");
+            var root = parseJson(body);
+            int vendorId = root.path("vendorId").asInt(-1);
             if (vendorId == -1) {
-                writeJson(exchange, 400, "{\"error\":\"Missing vendorId\"}");
+                writeJsonObject(exchange, 400, Map.of("error", "Missing vendorId"));
                 return;
             }
 
             List<PurchaseItemRequest> items = new ArrayList<>();
-            Pattern itemPattern = Pattern
-                    .compile("\\{[^\\}]*\\\"medicineCode\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"[^\\}]*\\}");
-            Matcher matcher = itemPattern.matcher(body);
+            var itemsNode = root.path("items");
+            if (itemsNode.isArray()) {
+                for (var itemNode : itemsNode) {
+                    String code = itemNode.path("medicineCode").asText(null);
+                    String batch = itemNode.path("batchNumber").asText(null);
+                    String expiry = itemNode.path("expiryDate").asText(null);
+                    int qty = itemNode.path("quantity").asInt(-1);
+                    String priceRaw = itemNode.path("unitPurchasePrice").asText(null);
 
-            while (matcher.find()) {
-                String itemBlock = matcher.group(0);
-                String code = extractString(itemBlock, "medicineCode");
-                String batch = extractString(itemBlock, "batchNumber");
-                String expiry = extractString(itemBlock, "expiryDate");
-                int qty = extractInt(itemBlock, "quantity");
-                double price = extractDouble(itemBlock, "unitPurchasePrice");
+                    if (code == null || batch == null || expiry == null || qty == -1 || priceRaw == null) {
+                        throw new IllegalArgumentException("Invalid item fields");
+                    }
 
-                if (code == null || batch == null || expiry == null || qty == -1 || price == -1) {
-                    throw new IllegalArgumentException("Invalid item fields");
+                    items.add(new PurchaseItemRequest(
+                            code,
+                            batch,
+                            expiry,
+                            qty,
+                            new java.math.BigDecimal(priceRaw)));
                 }
-
-                items.add(new PurchaseItemRequest(code, batch, expiry, qty, BigDecimal.valueOf(price)));
             }
 
             if (items.isEmpty()) {
-                writeJson(exchange, 400, "{\"error\":\"No items provided in purchase\"}");
+                writeJsonObject(exchange, 400, Map.of("error", "No items provided in purchase"));
                 return;
             }
 
             PurchaseRequest req = new PurchaseRequest(vendorId, items);
             PurchaseResponse resp = purchaseService.makePurchase(req);
 
-            String jsonResp = "{"
-                    + "\"purchaseId\":" + resp.getPurchaseId() + ","
-                    + "\"totalAmount\":" + resp.getTotalAmount() + ","
-                    + "\"message\":\"" + escapeJson(resp.getMessage()) + "\""
-                    + "}";
-
-            writeJson(exchange, 201, jsonResp);
+            writeJsonObject(exchange, 201, Map.of(
+                    "purchaseId", resp.getPurchaseId(),
+                    "totalAmount", resp.getTotalAmount(),
+                    "message", resp.getMessage()));
 
         } catch (IllegalArgumentException e) {
-            writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 400, Map.of("error", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
-            writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 500, Map.of("error", e.getMessage()));
         }
     }
 
     private void handleReceive(HttpExchange exchange, String body) throws IOException {
-        int purchaseId = extractInt(body, "purchaseId");
-        int batchId = extractInt(body, "batchId");
+        var root = parseJson(body);
+        int purchaseId = root.path("purchaseId").asInt(-1);
+        int batchId = root.path("batchId").asInt(-1);
 
         if (purchaseId == -1 || batchId == -1) {
-            writeJson(exchange, 400, "{\"error\":\"purchaseId and batchId are required\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "purchaseId and batchId are required"));
             return;
         }
 
         PurchaseDetails received = purchaseService.receivePurchaseLine(purchaseId, batchId);
-        String jsonResp = "{"
-                + "\"purchaseId\":" + received.getPurchaseId() + ","
-                + "\"batchId\":" + received.getBatchId() + ","
-                + "\"medicineId\":" + received.getMedicineId() + ","
-                + "\"quantity\":" + received.getQuantity() + ","
-                + "\"received\":" + received.isReceived() + ","
-                + "\"message\":\"Purchase line received successfully\""
-                + "}";
-        writeJson(exchange, 200, jsonResp);
+        writeJsonObject(exchange, 200, Map.of(
+                "purchaseId", received.getPurchaseId(),
+                "batchId", received.getBatchId(),
+                "medicineId", received.getMedicineId(),
+                "quantity", received.getQuantity(),
+                "received", received.isReceived(),
+                "message", "Purchase line received successfully"));
     }
 
     private void handleGetPending(HttpExchange exchange) throws IOException {
         List<PurchaseDetails> pending = purchaseService.getPendingPurchaseDetails();
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < pending.size(); i++) {
-            PurchaseDetails detail = pending.get(i);
-            sb.append("{")
-                    .append("\"purchaseId\":").append(detail.getPurchaseId()).append(",")
-                    .append("\"medicineId\":").append(detail.getMedicineId()).append(",")
-                    .append("\"batchId\":").append(detail.getBatchId()).append(",")
-                    .append("\"quantity\":").append(detail.getQuantity()).append(",")
-                    .append("\"unitPrice\":").append(detail.getUnitPrice()).append(",")
-                    .append("\"purchaseDate\":\"").append(detail.getPurchaseDate()).append("\",")
-                    .append("\"received\":").append(detail.isReceived())
-                    .append("}");
-            if (i < pending.size() - 1) {
-                sb.append(",");
-            }
+        List<Map<String, Object>> response = new ArrayList<>();
+        for (PurchaseDetails detail : pending) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("purchaseId", detail.getPurchaseId());
+            row.put("medicineId", detail.getMedicineId());
+            row.put("batchId", detail.getBatchId());
+            row.put("quantity", detail.getQuantity());
+            row.put("unitPrice", detail.getUnitPrice());
+            row.put("purchaseDate", detail.getPurchaseDate());
+            row.put("received", detail.isReceived());
+            response.add(row);
         }
-        sb.append("]");
-        writeJson(exchange, 200, sb.toString());
-    }
-
-    private int extractInt(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*(\\d+)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find())
-            return Integer.parseInt(matcher.group(1));
-        return -1;
-    }
-
-    private double extractDouble(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*([\\d\\.]+)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find())
-            return Double.parseDouble(matcher.group(1));
-        return -1;
-    }
-
-    private String extractString(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*\\\"(.*?)\\\"");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find())
-            return matcher.group(1);
-        return null;
+        writeJsonObject(exchange, 200, response);
     }
 }

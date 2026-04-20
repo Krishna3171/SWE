@@ -12,9 +12,9 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class VendorMedicineController extends BaseController implements HttpHandler {
 
@@ -40,11 +40,13 @@ public class VendorMedicineController extends BaseController implements HttpHand
 
         try {
             if ("GET".equals(method)) {
-                if (!requireRole(exchange, null, "admin")) return;
+                if (!requireRole(exchange, null, "admin"))
+                    return;
                 handleGetLinks(exchange);
             } else if ("POST".equals(method)) {
                 String body = readRequestBody(exchange, 4096);
-                if (!requireRole(exchange, body, "admin")) return;
+                if (!requireRole(exchange, body, "admin"))
+                    return;
                 handleCreateLink(exchange, body);
             } else {
                 writeJson(exchange, 405, "{\"error\":\"Method not allowed\"}");
@@ -59,63 +61,50 @@ public class VendorMedicineController extends BaseController implements HttpHand
             List<Vendor> vendors = vendorDAO.getAllVendors(conn);
             List<Medicine> medicines = medicineDAO.getAllMedicines(conn);
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("{");
-
-            // vendors array
-            sb.append("\"vendors\":[");
-            for (int i = 0; i < vendors.size(); i++) {
-                Vendor v = vendors.get(i);
-                sb.append("{")
-                  .append("\"vendorId\":").append(v.getVendorId()).append(",")
-                  .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\"")
-                  .append("}");
-                if (i < vendors.size() - 1) sb.append(",");
+            List<Map<String, Object>> vendorRows = new java.util.ArrayList<>();
+            for (Vendor v : vendors) {
+                vendorRows.add(Map.of(
+                        "vendorId", v.getVendorId(),
+                        "vendorName", v.getVendorName()));
             }
-            sb.append("],");
 
-            // medicines array
-            sb.append("\"medicines\":[");
-            for (int i = 0; i < medicines.size(); i++) {
-                Medicine m = medicines.get(i);
-                sb.append("{")
-                  .append("\"medicineId\":").append(m.getMedicineId()).append(",")
-                  .append("\"medicineCode\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                  .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\"")
-                  .append("}");
-                if (i < medicines.size() - 1) sb.append(",");
+            List<Map<String, Object>> medicineRows = new java.util.ArrayList<>();
+            for (Medicine m : medicines) {
+                medicineRows.add(Map.of(
+                        "medicineId", m.getMedicineId(),
+                        "medicineCode", m.getMedicineCode(),
+                        "tradeName", m.getTradeName()));
             }
-            sb.append("],");
 
-            // existing links
-            sb.append("\"links\":[");
-            boolean firstLink = true;
+            List<Map<String, Object>> links = new java.util.ArrayList<>();
             for (Medicine m : medicines) {
                 List<Integer> vIds = vendorMedicineDAO.getVendorsForMedicine(conn, m.getMedicineId());
                 for (int vId : vIds) {
-                    if (!firstLink) sb.append(",");
-                    sb.append("{")
-                      .append("\"vendorId\":").append(vId).append(",")
-                      .append("\"medicineId\":").append(m.getMedicineId())
-                      .append("}");
-                    firstLink = false;
+                    Map<String, Object> link = new HashMap<>();
+                    link.put("vendorId", vId);
+                    link.put("medicineId", m.getMedicineId());
+                    links.add(link);
                 }
             }
-            sb.append("]");
 
-            sb.append("}");
-            writeJson(exchange, 200, sb.toString());
+            Map<String, Object> response = new HashMap<>();
+            response.put("vendors", vendorRows);
+            response.put("medicines", medicineRows);
+            response.put("links", links);
+
+            writeJsonObject(exchange, 200, response);
         } catch (SQLException e) {
-            writeJson(exchange, 500, "{\"error\":\"Database error\"}");
+            writeJsonObject(exchange, 500, Map.of("error", "Database error"));
         }
     }
 
     private void handleCreateLink(HttpExchange exchange, String body) throws IOException {
-        int vendorId = extractInt(body, "vendorId");
-        int medicineId = extractInt(body, "medicineId");
+        var node = parseJson(body);
+        int vendorId = node.path("vendorId").asInt(-1);
+        int medicineId = node.path("medicineId").asInt(-1);
 
         if (vendorId == -1 || medicineId == -1) {
-            writeJson(exchange, 400, "{\"error\":\"vendorId and medicineId are required\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "vendorId and medicineId are required"));
             return;
         }
 
@@ -123,25 +112,21 @@ public class VendorMedicineController extends BaseController implements HttpHand
             // Check if link already exists
             boolean exists = vendorMedicineDAO.existsMapping(conn, vendorId, medicineId);
             if (exists) {
-                writeJson(exchange, 409, "{\"error\":\"Link already exists\"}");
+                writeJsonObject(exchange, 409, Map.of("error", "Link already exists"));
                 return;
             }
 
             boolean created = vendorMedicineDAO.linkVendorToMedicine(conn, vendorId, medicineId);
             if (created) {
-                writeJson(exchange, 201, "{\"message\":\"Vendor linked to medicine successfully\",\"vendorId\":" + vendorId + ",\"medicineId\":" + medicineId + "}");
+                writeJsonObject(exchange, 201, Map.of(
+                        "message", "Vendor linked to medicine successfully",
+                        "vendorId", vendorId,
+                        "medicineId", medicineId));
             } else {
-                writeJson(exchange, 500, "{\"error\":\"Failed to create link\"}");
+                writeJsonObject(exchange, 500, Map.of("error", "Failed to create link"));
             }
         } catch (SQLException e) {
-            writeJson(exchange, 500, "{\"error\":\"Database error\"}");
+            writeJsonObject(exchange, 500, Map.of("error", "Database error"));
         }
-    }
-
-    private int extractInt(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*(\\d+)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) return Integer.parseInt(matcher.group(1));
-        return -1;
     }
 }

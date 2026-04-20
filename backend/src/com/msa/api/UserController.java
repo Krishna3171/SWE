@@ -6,8 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class UserController extends BaseController implements HttpHandler {
 
@@ -34,9 +33,10 @@ public class UserController extends BaseController implements HttpHandler {
 
         try {
             String body = readRequestBody(exchange, MAX_REQUEST_BYTES);
-            String username = extractJsonValue(body, "username");
-            String password = extractJsonValue(body, "password");
-            String role = extractJsonValue(body, "role");
+            var node = parseJson(body);
+            String username = node.path("username").asText(null);
+            String password = node.path("password").asText(null);
+            String role = node.path("role").asText(null);
 
             if (isBlank(username) || isBlank(password)) {
                 writeJson(exchange, 400, "{\"error\":\"username and password are required\"}");
@@ -45,33 +45,21 @@ public class UserController extends BaseController implements HttpHandler {
 
             AppUser user = authService.login(username.trim().toLowerCase(), password, role);
             if (user == null) {
-                writeJson(exchange, 401, "{\"error\":\"Invalid credentials for the selected role.\"}");
+                writeJsonObject(exchange, 401, Map.of("error", "Invalid credentials for the selected role."));
                 return;
             }
 
-            String json = "{"
-                    + "\"username\":\"" + escapeJson(user.getUsername()) + "\","
-                    + "\"role\":\"" + escapeJson(user.getRole()) + "\","
-                    + "\"displayName\":\"" + escapeJson(user.getUsername()) + "\""
-                    + "}";
-            writeJson(exchange, 200, json);
+            writeJsonObject(exchange, 200, Map.of(
+                    "username", user.getUsername(),
+                    "role", user.getRole(),
+                    "displayName", user.getUsername()));
 
         } catch (IllegalArgumentException e) {
-            writeJson(exchange, 413, "{\"error\":\"Request body too large\"}");
+            writeJsonObject(exchange, 413, Map.of("error", "Request body too large"));
         } catch (Exception e) {
             e.printStackTrace();
-            writeJson(exchange, 500, "{\"error\":\"Internal server error\"}");
+            writeJsonObject(exchange, 500, Map.of("error", "Internal server error"));
         }
-    }
-
-    private static String extractJsonValue(String body, String key) {
-        String patternText = "\\\"" + Pattern.quote(key) + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"";
-        Pattern pattern = Pattern.compile(patternText);
-        Matcher matcher = pattern.matcher(body);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
     }
 
     private static boolean isBlank(String value) {

@@ -10,8 +10,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class VendorController extends BaseController implements HttpHandler {
 
@@ -45,26 +44,9 @@ public class VendorController extends BaseController implements HttpHandler {
     private void handleGet(HttpExchange exchange) throws IOException {
         try (Connection conn = DBConnection.getConnection()) {
             List<Vendor> vendors = vendorDAO.getAllVendors(conn);
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            for (int i = 0; i < vendors.size(); i++) {
-                Vendor v = vendors.get(i);
-                sb.append("{")
-                        .append("\"vendorId\":").append(v.getVendorId()).append(",")
-                        .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
-                        .append("\"address\":\"").append(escapeJson(v.getAddress() != null ? v.getAddress() : ""))
-                        .append("\",")
-                        .append("\"contactNo\":\"").append(escapeJson(v.getContactNo() != null ? v.getContactNo() : ""))
-                        .append("\"")
-                        .append("}");
-                if (i < vendors.size() - 1)
-                    sb.append(",");
-            }
-            sb.append("]");
-
-            writeJson(exchange, 200, sb.toString());
+            writeJsonObject(exchange, 200, vendors);
         } catch (SQLException e) {
-            writeJson(exchange, 500, "{\"error\":\"Database error: " + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 500, Map.of("error", "Database error: " + e.getMessage()));
         }
     }
 
@@ -75,12 +57,13 @@ public class VendorController extends BaseController implements HttpHandler {
                 return;
             }
 
-            String name = extractString(body, "name");
-            String address = extractString(body, "address");
-            String contact = extractString(body, "contact");
+            var node = parseJson(body);
+            String name = node.path("name").asText(null);
+            String address = node.path("address").isMissingNode() ? null : node.path("address").asText(null);
+            String contact = node.path("contact").isMissingNode() ? null : node.path("contact").asText(null);
 
             if (name == null) {
-                writeJson(exchange, 400, "{\"error\":\"Missing fields\"}");
+                writeJsonObject(exchange, 400, Map.of("error", "Missing fields"));
                 return;
             }
 
@@ -92,16 +75,17 @@ public class VendorController extends BaseController implements HttpHandler {
 
                 boolean success = vendorDAO.insertVendor(conn, vendor);
                 if (success) {
-                    writeJson(exchange, 201,
-                            "{\"message\":\"Vendor added\", \"vendorId\":" + vendor.getVendorId() + "}");
+                    writeJsonObject(exchange, 201, Map.of(
+                            "message", "Vendor added",
+                            "vendorId", vendor.getVendorId()));
                 } else {
-                    writeJson(exchange, 500, "{\"error\":\"Failed to insert vendor into database\"}");
+                    writeJsonObject(exchange, 500, Map.of("error", "Failed to insert vendor into database"));
                 }
             } catch (SQLException e) {
-                writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+                writeJsonObject(exchange, 500, Map.of("error", e.getMessage()));
             }
         } catch (Exception e) {
-            writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 400, Map.of("error", e.getMessage()));
         }
     }
 
@@ -112,13 +96,14 @@ public class VendorController extends BaseController implements HttpHandler {
                 return;
             }
 
-            int vendorId = extractInt(body, "vendorId");
-            String name = extractString(body, "name");
-            String address = extractString(body, "address");
-            String contact = extractString(body, "contact");
+            var node = parseJson(body);
+            int vendorId = node.path("vendorId").asInt(-1);
+            String name = node.path("name").asText(null);
+            String address = node.path("address").isMissingNode() ? null : node.path("address").asText(null);
+            String contact = node.path("contact").isMissingNode() ? null : node.path("contact").asText(null);
 
             if (vendorId == -1 || name == null) {
-                writeJson(exchange, 400, "{\"error\":\"Missing required fields\"}");
+                writeJsonObject(exchange, 400, Map.of("error", "Missing required fields"));
                 return;
             }
 
@@ -131,30 +116,15 @@ public class VendorController extends BaseController implements HttpHandler {
 
                 boolean updated = vendorDAO.updateVendor(conn, vendor);
                 if (updated) {
-                    writeJson(exchange, 200, "{\"message\":\"Vendor updated successfully\"}");
+                    writeJsonObject(exchange, 200, Map.of("message", "Vendor updated successfully"));
                 } else {
-                    writeJson(exchange, 404, "{\"error\":\"Vendor not found or update failed\"}");
+                    writeJsonObject(exchange, 404, Map.of("error", "Vendor not found or update failed"));
                 }
             } catch (SQLException e) {
-                writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+                writeJsonObject(exchange, 500, Map.of("error", e.getMessage()));
             }
         } catch (Exception e) {
-            writeJson(exchange, 400, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 400, Map.of("error", e.getMessage()));
         }
-    }
-
-    private int extractInt(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*([0-9]+)");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) return Integer.parseInt(matcher.group(1));
-        return -1;
-    }
-
-    private String extractString(String json, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + key + "\\\"\\s*:\\s*\\\"(.*?)\\\"");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find())
-            return matcher.group(1);
-        return null;
     }
 }

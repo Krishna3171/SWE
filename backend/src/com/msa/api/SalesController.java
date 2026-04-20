@@ -17,9 +17,9 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
 
 public class SalesController extends BaseController implements HttpHandler {
 
@@ -65,48 +65,37 @@ public class SalesController extends BaseController implements HttpHandler {
 
             List<Sales> recentSales = salesDAO.getRecentSales(conn, 20);
 
-            StringBuilder json = new StringBuilder();
-            json.append("[");
+            List<Map<String, Object>> responseRows = new ArrayList<>();
 
-            for (int i = 0; i < recentSales.size(); i++) {
-                Sales sale = recentSales.get(i);
+            for (Sales sale : recentSales) {
 
                 // Get line-item details for this sale
                 List<SalesDetails> details = salesDetailsDAO.getSalesDetailsBySaleId(conn, sale.getSaleId());
 
-                json.append("{");
-                json.append("\"saleId\":").append(sale.getSaleId()).append(",");
-                json.append("\"saleDate\":\"").append(sale.getSaleDate()).append("\",");
-                json.append("\"totalAmount\":").append(sale.getTotalAmount()).append(",");
-
-                // Build items array
-                json.append("\"items\":[");
-                for (int j = 0; j < details.size(); j++) {
-                    SalesDetails d = details.get(j);
+                List<Map<String, Object>> items = new ArrayList<>();
+                for (SalesDetails d : details) {
                     Medicine med = medicineDAO.getMedicineById(conn, d.getMedicineId());
-                    String medName = med != null ? escapeJson(med.getMedicineName()) : "Unknown";
-                    String medCode = med != null ? escapeJson(med.getMedicineCode()) : "N/A";
+                    String medName = med != null ? med.getMedicineName() : "Unknown";
+                    String medCode = med != null ? med.getMedicineCode() : "N/A";
 
-                    json.append("{");
-                    json.append("\"medicineId\":").append(d.getMedicineId()).append(",");
-                    json.append("\"medicineName\":\"").append(medName).append("\",");
-                    json.append("\"medicineCode\":\"").append(medCode).append("\",");
-                    json.append("\"quantity\":").append(d.getQuantitySold()).append(",");
-                    json.append("\"unitPrice\":").append(d.getPrice());
-                    json.append("}");
-                    if (j < details.size() - 1)
-                        json.append(",");
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("medicineId", d.getMedicineId());
+                    item.put("medicineName", medName);
+                    item.put("medicineCode", medCode);
+                    item.put("quantity", d.getQuantitySold());
+                    item.put("unitPrice", d.getPrice());
+                    items.add(item);
                 }
-                json.append("]");
 
-                json.append("}");
-                if (i < recentSales.size() - 1)
-                    json.append(",");
+                Map<String, Object> row = new HashMap<>();
+                row.put("saleId", sale.getSaleId());
+                row.put("saleDate", String.valueOf(sale.getSaleDate()));
+                row.put("totalAmount", sale.getTotalAmount());
+                row.put("items", items);
+                responseRows.add(row);
             }
 
-            json.append("]");
-
-            writeJson(exchange, 200, json.toString());
+            writeJsonObject(exchange, 200, responseRows);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -128,40 +117,38 @@ public class SalesController extends BaseController implements HttpHandler {
                 return;
             }
 
-            // Extract items logic:
-            // format: "medicineCode":"xyz", "quantity":5
             List<SaleItemRequest> items = new ArrayList<>();
 
-            Pattern pattern = Pattern
-                    .compile("\\\"medicineCode\\\"\\s*:\\s*\\\"([^\\\"]+)\\\"\\s*,\\s*\\\"quantity\\\"\\s*:\\s*(\\d+)");
-            Matcher matcher = pattern.matcher(body);
-            while (matcher.find()) {
-                String code = matcher.group(1);
-                int qty = Integer.parseInt(matcher.group(2));
-                items.add(new SaleItemRequest(code, qty));
+            var node = parseJson(body);
+            var itemsNode = node.path("items");
+            if (itemsNode.isArray()) {
+                for (var itemNode : itemsNode) {
+                    String code = itemNode.path("medicineCode").asText(null);
+                    int qty = itemNode.path("quantity").asInt(-1);
+                    if (code != null && qty > 0) {
+                        items.add(new SaleItemRequest(code, qty));
+                    }
+                }
             }
 
             if (items.isEmpty()) {
-                writeJson(exchange, 400, "{\"error\":\"No items in sale request\"}");
+                writeJsonObject(exchange, 400, Map.of("error", "No items in sale request"));
                 return;
             }
 
             SaleRequest req = new SaleRequest(items);
             SaleResponse resp = salesService.makeSale(req);
 
-            String json = "{"
-                    + "\"saleId\":" + resp.getSaleId() + ","
-                    + "\"totalAmount\":" + resp.getTotalAmount() + ","
-                    + "\"message\":\"" + escapeJson(resp.getMessage()) + "\""
-                    + "}";
-
-            writeJson(exchange, 201, json);
+            writeJsonObject(exchange, 201, Map.of(
+                    "saleId", resp.getSaleId(),
+                    "totalAmount", resp.getTotalAmount(),
+                    "message", resp.getMessage()));
 
         } catch (IllegalArgumentException e) {
-            writeJson(exchange, 413, "{\"error\":\"Request body too large\"}");
+            writeJsonObject(exchange, 413, Map.of("error", "Request body too large"));
         } catch (Exception e) {
             e.printStackTrace();
-            writeJson(exchange, 500, "{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
+            writeJsonObject(exchange, 500, Map.of("error", e.getMessage()));
         }
     }
 }

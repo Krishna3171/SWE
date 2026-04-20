@@ -52,53 +52,7 @@ public class ReportController extends BaseController implements HttpHandler {
 
             ProfitReportRequest req = new ProfitReportRequest(startDate, endDate);
             ProfitReportResponse resp = reportService.generateProfitReport(req);
-
-            StringBuilder json = new StringBuilder();
-            json.append("{")
-                    .append("\"startDate\":\"").append(resp.getStartDate()).append("\",")
-                    .append("\"endDate\":\"").append(resp.getEndDate()).append("\",")
-                    .append("\"totalSalesRevenue\":").append(resp.getTotalSalesRevenue()).append(",")
-                    .append("\"totalPurchaseCost\":").append(resp.getTotalPurchaseCost()).append(",")
-                    .append("\"totalProfit\":").append(resp.getTotalProfit()).append(",")
-                    .append("\"profitMargin\":").append(resp.getProfitMargin()).append(",");
-
-            json.append("\"medicineProfits\":[");
-            if (resp.getMedicineProfits() != null) {
-                for (int i = 0; i < resp.getMedicineProfits().size(); i++) {
-                    var m = resp.getMedicineProfits().get(i);
-                    json.append("{")
-                            .append("\"medicineId\":").append(m.getMedicineId()).append(",")
-                            .append("\"medicineName\":\"").append(escapeJson(m.getMedicineName())).append("\",")
-                            .append("\"totalRevenue\":").append(m.getTotalRevenue()).append(",")
-                            .append("\"totalCost\":").append(m.getTotalCost()).append(",")
-                            .append("\"profit\":").append(m.getProfit()).append(",")
-                            .append("\"profitMargin\":").append(m.getProfitMargin()).append(",")
-                            .append("\"totalQuantity\":").append(m.getTotalQuantity())
-                            .append("}");
-                    if (i < resp.getMedicineProfits().size() - 1)
-                        json.append(",");
-                }
-            }
-            json.append("],");
-
-            json.append("\"vendorProfits\":[");
-            if (resp.getVendorProfits() != null) {
-                for (int i = 0; i < resp.getVendorProfits().size(); i++) {
-                    var v = resp.getVendorProfits().get(i);
-                    json.append("{")
-                            .append("\"vendorId\":").append(v.getVendorId()).append(",")
-                            .append("\"vendorName\":\"").append(escapeJson(v.getVendorName())).append("\",")
-                            .append("\"totalPurchaseCost\":").append(v.getTotalPurchaseCost())
-                            .append("}");
-                    if (i < resp.getVendorProfits().size() - 1)
-                        json.append(",");
-                }
-            }
-            json.append("]");
-
-            json.append("}");
-
-            writeJson(exchange, 200, json.toString());
+            writeJsonObject(exchange, 200, resp);
 
         } catch (Exception e) {
             e.printStackTrace();

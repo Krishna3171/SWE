@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -67,21 +68,15 @@ public class UserManagementController extends BaseController implements HttpHand
         }
 
         List<AppUser> users = authService.getAllUsers();
-        StringBuilder json = new StringBuilder("[");
-        for (int i = 0; i < users.size(); i++) {
-            AppUser user = users.get(i);
-            json.append("{")
-                    .append("\"userId\":").append(user.getUserId()).append(",")
-                    .append("\"username\":\"").append(escapeJson(user.getUsername())).append("\",")
-                    .append("\"role\":\"").append(escapeJson(user.getRole())).append("\"")
-                    .append("}");
-            if (i < users.size() - 1) {
-                json.append(",");
-            }
+        List<Map<String, Object>> response = new java.util.ArrayList<>();
+        for (AppUser user : users) {
+            response.add(Map.of(
+                    "userId", user.getUserId(),
+                    "username", user.getUsername(),
+                    "role", user.getRole()));
         }
-        json.append("]");
 
-        writeJson(exchange, 200, json.toString());
+        writeJsonObject(exchange, 200, response);
     }
 
     private void handleCreate(HttpExchange exchange) throws IOException {
@@ -90,12 +85,13 @@ public class UserManagementController extends BaseController implements HttpHand
             return;
         }
 
-        String username = extractJsonString(body, "username");
-        String password = extractJsonString(body, "password");
-        String role = extractJsonString(body, "role");
+        var node = parseJson(body);
+        String username = node.path("username").asText(null);
+        String password = node.path("password").asText(null);
+        String role = node.path("role").asText(null);
 
         if (isBlank(username) || isBlank(password) || isBlank(role)) {
-            writeJson(exchange, 400, "{\"error\":\"username, password, and role are required\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "username, password, and role are required"));
             return;
         }
 
@@ -106,12 +102,13 @@ public class UserManagementController extends BaseController implements HttpHand
 
         boolean created = authService.createUser(user);
         if (!created) {
-            writeJson(exchange, 400, "{\"error\":\"Failed to create user\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "Failed to create user"));
             return;
         }
 
-        writeJson(exchange, 201,
-                "{\"message\":\"User created\",\"userId\":" + user.getUserId() + "}");
+        writeJsonObject(exchange, 201, Map.of(
+                "message", "User created",
+                "userId", user.getUserId()));
     }
 
     private void handleUpdate(HttpExchange exchange, int userId) throws IOException {
@@ -120,12 +117,13 @@ public class UserManagementController extends BaseController implements HttpHand
             return;
         }
 
-        String username = extractJsonString(body, "username");
-        String password = extractJsonString(body, "password");
-        String role = extractJsonString(body, "role");
+        var node = parseJson(body);
+        String username = node.path("username").asText(null);
+        String password = node.path("password").asText(null);
+        String role = node.path("role").asText(null);
 
         if (isBlank(username) || isBlank(password) || isBlank(role)) {
-            writeJson(exchange, 400, "{\"error\":\"username, password, and role are required\"}");
+            writeJsonObject(exchange, 400, Map.of("error", "username, password, and role are required"));
             return;
         }
 
@@ -137,11 +135,11 @@ public class UserManagementController extends BaseController implements HttpHand
 
         boolean updated = authService.updateUser(user);
         if (!updated) {
-            writeJson(exchange, 404, "{\"error\":\"User not found\"}");
+            writeJsonObject(exchange, 404, Map.of("error", "User not found"));
             return;
         }
 
-        writeJson(exchange, 200, "{\"message\":\"User updated\"}");
+        writeJsonObject(exchange, 200, Map.of("message", "User updated"));
     }
 
     private void handleDelete(HttpExchange exchange, int userId) throws IOException {
@@ -151,11 +149,11 @@ public class UserManagementController extends BaseController implements HttpHand
 
         boolean deleted = authService.deleteUser(userId);
         if (!deleted) {
-            writeJson(exchange, 404, "{\"error\":\"User not found\"}");
+            writeJsonObject(exchange, 404, Map.of("error", "User not found"));
             return;
         }
 
-        writeJson(exchange, 200, "{\"message\":\"User deleted\"}");
+        writeJsonObject(exchange, 200, Map.of("message", "User deleted"));
     }
 
     private static boolean isCollectionPath(String path) {
@@ -168,15 +166,6 @@ public class UserManagementController extends BaseController implements HttpHand
             return null;
         }
         return Integer.parseInt(matcher.group(1));
-    }
-
-    private static String extractJsonString(String body, String key) {
-        Pattern pattern = Pattern.compile("\\\"" + Pattern.quote(key) + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
-        Matcher matcher = pattern.matcher(body);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-        return null;
     }
 
     private static boolean isBlank(String value) {

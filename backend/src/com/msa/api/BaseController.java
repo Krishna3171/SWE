@@ -1,15 +1,22 @@
 package com.msa.api;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public abstract class BaseController {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     protected static void addCorsHeaders(HttpExchange exchange, String allowedMethods) {
         exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "*");
@@ -27,7 +34,7 @@ public abstract class BaseController {
 
     protected static String readRequestBody(HttpExchange exchange, int maxBytes) throws IOException {
         try (InputStream in = exchange.getRequestBody();
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[4096];
             int total = 0;
             int read;
@@ -63,13 +70,43 @@ public abstract class BaseController {
     }
 
     protected static String extractJsonValueFromBody(String body, String key) {
-        String patternText = "\\\"" + Pattern.quote(key) + "\\\"\\s*:\\s*(?:\\\"([^\\\"]*)\\\"|([0-9.]+)|true|false)";
-        Pattern pattern = Pattern.compile(patternText, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(body);
-        if (matcher.find()) {
-            return matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+        if (body == null || body.isBlank() || key == null || key.isBlank()) {
+            return null;
         }
+
+        try {
+            JsonNode node = OBJECT_MAPPER.readTree(body);
+            JsonNode valueNode = node.get(key);
+            if (valueNode == null || valueNode.isNull()) {
+                return null;
+            }
+            if (valueNode.isTextual()) {
+                return valueNode.asText();
+            }
+            if (valueNode.isNumber() || valueNode.isBoolean()) {
+                return valueNode.asText();
+            }
+        } catch (IOException ignored) {
+            // Role extraction should fail closed; callers handle missing values.
+        }
+
         return null;
+    }
+
+    protected static JsonNode parseJson(String body) throws IOException {
+        return OBJECT_MAPPER.readTree(body);
+    }
+
+    protected static <T> T parseJson(String body, Class<T> clazz) throws IOException {
+        return OBJECT_MAPPER.readValue(body, clazz);
+    }
+
+    protected static void writeJsonObject(HttpExchange exchange, int statusCode, Object payload) throws IOException {
+        try {
+            writeJson(exchange, statusCode, OBJECT_MAPPER.writeValueAsString(payload));
+        } catch (JsonProcessingException e) {
+            writeJson(exchange, 500, "{\"error\":\"Failed to serialize response\"}");
+        }
     }
 
     protected static String getRole(HttpExchange exchange, String requestBody) {

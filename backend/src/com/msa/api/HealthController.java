@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.Map;
 
 public class HealthController extends BaseController implements HttpHandler {
 
@@ -23,9 +24,9 @@ public class HealthController extends BaseController implements HttpHandler {
         }
 
         try (Connection ignored = DBConnection.getConnection()) {
-            writeJson(exchange, 200, "{\"status\":\"UP\",\"db\":\"UP\"}");
+            writeJsonObject(exchange, 200, Map.of("status", "UP", "db", "UP"));
         } catch (Exception e) {
-            writeJson(exchange, 503, "{\"status\":\"DOWN\",\"db\":\"DOWN\"}");
+            writeJsonObject(exchange, 503, Map.of("status", "DOWN", "db", "DOWN"));
         }
     }
 }

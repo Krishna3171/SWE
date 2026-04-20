@@ -13,7 +13,9 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class InventoryController extends BaseController implements HttpHandler {
 
@@ -61,10 +63,8 @@ public class InventoryController extends BaseController implements HttpHandler {
         try (Connection conn = DBConnection.getConnection()) {
             List<Medicine> medicines = medicineDAO.getAllMedicines(conn);
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            for (int i = 0; i < medicines.size(); i++) {
-                Medicine m = medicines.get(i);
+            List<Map<String, Object>> rows = new java.util.ArrayList<>();
+            for (Medicine m : medicines) {
                 Inventory inv = inventoryDAO.getInventoryByMedicineId(conn, m.getMedicineId());
                 int qty = inv != null ? inv.getQuantityAvailable() : 0;
                 int staticThreshold = inv != null ? inv.getReorderThreshold() : 0;
@@ -72,20 +72,17 @@ public class InventoryController extends BaseController implements HttpHandler {
                 Integer avgSales = salesDetailsDAO.getAverageDailySalesLast7Days(conn, m.getMedicineId());
                 int dynamicThreshold = (avgSales != null && avgSales > 0) ? avgSales : staticThreshold;
 
-                sb.append("{")
-                        .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                        .append("\"tradeName\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                        .append("\"currentStock\":").append(qty).append(",")
-                        .append("\"threshold\":").append(staticThreshold).append(",")
-                        .append("\"dynamicThreshold\":").append(dynamicThreshold).append(",")
-                        .append("\"rack\":\"A-10\"")
-                        .append("}");
-                if (i < medicines.size() - 1)
-                    sb.append(",");
+                Map<String, Object> row = new HashMap<>();
+                row.put("code", m.getMedicineCode());
+                row.put("tradeName", m.getTradeName());
+                row.put("currentStock", qty);
+                row.put("threshold", staticThreshold);
+                row.put("dynamicThreshold", dynamicThreshold);
+                row.put("rack", "A-10");
+                rows.add(row);
             }
-            sb.append("]");
 
-            writeJson(exchange, 200, sb.toString());
+            writeJsonObject(exchange, 200, rows);
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error\"}");
         }
@@ -97,11 +94,9 @@ public class InventoryController extends BaseController implements HttpHandler {
         }
         try (Connection conn = DBConnection.getConnection()) {
             List<Inventory> lowStockList = inventoryDAO.getLowStockMedicines(conn);
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
+            List<Map<String, Object>> rows = new java.util.ArrayList<>();
 
-            for (int i = 0; i < lowStockList.size(); i++) {
-                Inventory inv = lowStockList.get(i);
+            for (Inventory inv : lowStockList) {
                 Medicine m = medicineDAO.getMedicineById(conn, inv.getMedicineId());
 
                 List<Integer> vIds = vendorMedicineDAO.getVendorsForMedicine(conn, m.getMedicineId());
@@ -110,21 +105,17 @@ public class InventoryController extends BaseController implements HttpHandler {
                     vendorStr = "VND-" + vIds.get(0); // Simplification, get first
                 }
 
-                sb.append("{")
-                        .append("\"code\":\"").append(escapeJson(m.getMedicineCode())).append("\",")
-                        .append("\"name\":\"").append(escapeJson(m.getTradeName())).append("\",")
-                        .append("\"current\":").append(inv.getQuantityAvailable()).append(",")
-                        .append("\"threshold\":").append(inv.getReorderThreshold()).append(",")
-                        .append("\"toOrder\":")
-                        .append(Math.max(10, inv.getReorderThreshold() - inv.getQuantityAvailable() + 20)).append(",")
-                        .append("\"vendor\":\"").append(vendorStr).append("\"")
-                        .append("}");
-                if (i < lowStockList.size() - 1)
-                    sb.append(",");
+                Map<String, Object> row = new HashMap<>();
+                row.put("code", m.getMedicineCode());
+                row.put("name", m.getTradeName());
+                row.put("current", inv.getQuantityAvailable());
+                row.put("threshold", inv.getReorderThreshold());
+                row.put("toOrder", Math.max(10, inv.getReorderThreshold() - inv.getQuantityAvailable() + 20));
+                row.put("vendor", vendorStr);
+                rows.add(row);
             }
-            sb.append("]");
 
-            writeJson(exchange, 200, sb.toString());
+            writeJsonObject(exchange, 200, rows);
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error\"}");
         }

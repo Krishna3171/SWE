@@ -14,7 +14,9 @@ import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -67,11 +69,9 @@ public class BatchController extends BaseController implements HttpHandler {
         }
         try (Connection conn = DBConnection.getConnection()) {
             List<Batch> expired = batchDAO.getExpiredBatches(conn);
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
+            List<Map<String, Object>> rows = new java.util.ArrayList<>();
 
-            for (int i = 0; i < expired.size(); i++) {
-                Batch b = expired.get(i);
+            for (Batch b : expired) {
                 Medicine m = medicineDAO.getMedicineById(conn, b.getMedicineId());
                 Vendor v = vendorDAO.getVendorById(conn, b.getVendorId());
 
@@ -79,22 +79,19 @@ public class BatchController extends BaseController implements HttpHandler {
                 String mName = m != null ? m.getTradeName() : "Unknown";
                 String vName = v != null ? "VND-" + v.getVendorId() + " - " + v.getVendorName() : "Unknown";
 
-                sb.append("{")
-                        .append("\"batchId\":").append(b.getBatchId()).append(",")
-                        .append("\"medicineId\":").append(b.getMedicineId()).append(",")
-                        .append("\"code\":\"").append(escapeJson(mCode)).append("\",")
-                        .append("\"name\":\"").append(escapeJson(mName)).append("\",")
-                        .append("\"date\":\"").append(b.getExpiryDate().toString()).append("\",")
-                        .append("\"batch\":\"").append(escapeJson(b.getBatchNumber())).append("\",")
-                        .append("\"qty\":").append(b.getQuantity()).append(",")
-                        .append("\"vendor\":\"").append(escapeJson(vName)).append("\"")
-                        .append("}");
-                if (i < expired.size() - 1)
-                    sb.append(",");
+                Map<String, Object> row = new HashMap<>();
+                row.put("batchId", b.getBatchId());
+                row.put("medicineId", b.getMedicineId());
+                row.put("code", mCode);
+                row.put("name", mName);
+                row.put("date", String.valueOf(b.getExpiryDate()));
+                row.put("batch", b.getBatchNumber());
+                row.put("qty", b.getQuantity());
+                row.put("vendor", vName);
+                rows.add(row);
             }
-            sb.append("]");
 
-            writeJson(exchange, 200, sb.toString());
+            writeJsonObject(exchange, 200, rows);
         } catch (SQLException e) {
             writeJson(exchange, 500, "{\"error\":\"Database error: " + escapeJson(e.getMessage()) + "\"}");
         }
@@ -122,13 +119,13 @@ public class BatchController extends BaseController implements HttpHandler {
                 boolean deleted = batchDAO.deleteBatch(conn, batchId);
                 if (!deleted) {
                     conn.rollback();
-                    writeJson(exchange, 500, "{\"error\":\"Failed to delete batch\"}");
+                    writeJsonObject(exchange, 500, Map.of("error", "Failed to delete batch"));
                     return;
                 }
                 // Reduce inventory to reflect discarded units
                 inventoryDAO.reduceQuantity(conn, target.getMedicineId(), target.getQuantity());
                 conn.commit();
-                writeJson(exchange, 200, "{\"message\":\"Batch dropped and inventory updated\"}");
+                writeJsonObject(exchange, 200, Map.of("message", "Batch dropped and inventory updated"));
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;
